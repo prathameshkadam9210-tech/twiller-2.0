@@ -1,0 +1,318 @@
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+
+export type Language = "en" | "hi" | "es" | "pt" | "zh" | "fr";
+
+export const languageLabels: Record<Language, string> = {
+  en: "English",
+  hi: "Hindi",
+  es: "Spanish",
+  pt: "Portuguese",
+  zh: "Chinese",
+  fr: "French",
+};
+
+export const translations: Record<Language, Record<string, string>> = {
+  en: {
+    home: "Home",
+    explore: "Explore",
+    notifications: "Notifications",
+    yourNotifications: "Your notifications",
+    noNotifications: "No notifications yet.",
+    loginHistory: "Login History",
+    recentLogins: "Recent sign-ins and authentication events.",
+    subscription: "Subscription",
+    bookmarks: "Bookmarks",
+    profile: "Profile",
+    more: "More",
+    subscribe: "Subscribe",
+    settings: "Settings",
+    logout: "Log out",
+    forYou: "For you",
+    following: "Following",
+    loadingTweets: "Loading tweets...",
+    cricketPost: "Post cricket",
+    sciencePost: "Post science",
+    cricketDemo: "Cricket match update: this demo tweet should trigger a notification.",
+    scienceDemo: "Science discovery update: this demo tweet should trigger a notification.",
+    currentSubscription: "Current subscription",
+    paymentsWindow: "Payments are accepted only between 10:00 AM and 11:00 AM IST.",
+    status: "Status",
+    expires: "Expires",
+    currentPlan: "Current plan",
+    choosePlan: "Choose plan",
+    profileSettings: "Profile settings",
+    enableNotifications: "Enable Notifications",
+    disableNotifications: "Disable Notifications",
+    keywordNotifications: "Keyword notifications",
+    language: "Language",
+    requestOtp: "Request OTP",
+    verifyOtp: "Verify OTP",
+    otp: "OTP",
+  },
+  hi: {
+    home: "होम",
+    explore: "खोजें",
+    notifications: "सूचनाएं",
+    yourNotifications: "आपकी सूचनाएं",
+    noNotifications: "अभी कोई सूचना नहीं है.",
+    loginHistory: "लॉगिन इतिहास",
+    recentLogins: "हाल के साइन-इन और प्रमाणीकरण घटनाएं.",
+    subscription: "सदस्यता",
+    bookmarks: "बुकमार्क",
+    profile: "प्रोफाइल",
+    more: "अधिक",
+    subscribe: "सदस्यता लें",
+    settings: "सेटिंग्स",
+    logout: "लॉग आउट",
+    forYou: "आपके लिए",
+    following: "फॉलोइंग",
+    loadingTweets: "ट्वीट लोड हो रहे हैं...",
+    cricketPost: "क्रिकेट पोस्ट",
+    sciencePost: "विज्ञान पोस्ट",
+    cricketDemo: "क्रिकेट मैच अपडेट: यह टेस्ट ट्वीट सूचना दिखाएगा.",
+    scienceDemo: "विज्ञान खोज अपडेट: यह टेस्ट ट्वीट सूचना दिखाएगा.",
+    currentSubscription: "वर्तमान सदस्यता",
+    paymentsWindow: "भुगतान केवल 10:00 AM से 11:00 AM IST के बीच स्वीकार हैं.",
+    status: "स्थिति",
+    expires: "समाप्ति",
+    currentPlan: "वर्तमान प्लान",
+    choosePlan: "प्लान चुनें",
+    profileSettings: "प्रोफाइल सेटिंग्स",
+    enableNotifications: "सूचनाएं चालू करें",
+    disableNotifications: "सूचनाएं बंद करें",
+    keywordNotifications: "कीवर्ड सूचनाएं",
+    language: "भाषा",
+    requestOtp: "OTP भेजें",
+    verifyOtp: "OTP सत्यापित करें",
+    otp: "OTP",
+  },
+  es: {
+    home: "Inicio",
+    explore: "Explorar",
+    notifications: "Notificaciones",
+    yourNotifications: "Tus notificaciones",
+    noNotifications: "Aun no hay notificaciones.",
+    loginHistory: "Historial de inicio",
+    recentLogins: "Inicios recientes y eventos de autenticacion.",
+    subscription: "Suscripcion",
+    bookmarks: "Guardados",
+    profile: "Perfil",
+    more: "Mas",
+    subscribe: "Suscribirse",
+    settings: "Configuracion",
+    logout: "Cerrar sesion",
+    forYou: "Para ti",
+    following: "Siguiendo",
+    loadingTweets: "Cargando tweets...",
+    cricketPost: "Publicar cricket",
+    sciencePost: "Publicar ciencia",
+    cricketDemo: "Actualizacion de cricket: este tweet de prueba debe mostrar una notificacion.",
+    scienceDemo: "Actualizacion de ciencia: este tweet de prueba debe mostrar una notificacion.",
+    currentSubscription: "Suscripcion actual",
+    paymentsWindow: "Los pagos se aceptan solo entre 10:00 AM y 11:00 AM IST.",
+    status: "Estado",
+    expires: "Expira",
+    currentPlan: "Plan actual",
+    choosePlan: "Elegir plan",
+    profileSettings: "Configuracion del perfil",
+    enableNotifications: "Activar notificaciones",
+    disableNotifications: "Desactivar notificaciones",
+    keywordNotifications: "Notificaciones por palabra clave",
+    language: "Idioma",
+    requestOtp: "Solicitar OTP",
+    verifyOtp: "Verificar OTP",
+    otp: "OTP",
+  },
+  pt: {
+    home: "Inicio",
+    explore: "Explorar",
+    notifications: "Notificacoes",
+    yourNotifications: "Suas notificacoes",
+    noNotifications: "Ainda nao ha notificacoes.",
+    loginHistory: "Historico de login",
+    recentLogins: "Logins recentes e eventos de autenticacao.",
+    subscription: "Assinatura",
+    bookmarks: "Favoritos",
+    profile: "Perfil",
+    more: "Mais",
+    subscribe: "Assinar",
+    settings: "Configuracoes",
+    logout: "Sair",
+    forYou: "Para voce",
+    following: "Seguindo",
+    loadingTweets: "Carregando tweets...",
+    cricketPost: "Publicar cricket",
+    sciencePost: "Publicar ciencia",
+    cricketDemo: "Atualizacao de cricket: este tweet de teste deve mostrar uma notificacao.",
+    scienceDemo: "Atualizacao de ciencia: este tweet de teste deve mostrar uma notificacao.",
+    currentSubscription: "Assinatura atual",
+    paymentsWindow: "Pagamentos sao aceitos apenas entre 10:00 AM e 11:00 AM IST.",
+    status: "Status",
+    expires: "Expira",
+    currentPlan: "Plano atual",
+    choosePlan: "Escolher plano",
+    profileSettings: "Configuracoes do perfil",
+    enableNotifications: "Ativar notificacoes",
+    disableNotifications: "Desativar notificacoes",
+    keywordNotifications: "Notificacoes por palavra-chave",
+    language: "Idioma",
+    requestOtp: "Solicitar OTP",
+    verifyOtp: "Verificar OTP",
+    otp: "OTP",
+  },
+  zh: {
+    home: "首页",
+    explore: "探索",
+    notifications: "通知",
+    yourNotifications: "你的通知",
+    noNotifications: "暂无通知.",
+    loginHistory: "登录历史",
+    recentLogins: "最近登录和认证事件.",
+    subscription: "订阅",
+    bookmarks: "书签",
+    profile: "个人资料",
+    more: "更多",
+    subscribe: "订阅",
+    settings: "设置",
+    logout: "退出登录",
+    forYou: "为你推荐",
+    following: "正在关注",
+    loadingTweets: "正在加载推文...",
+    cricketPost: "发布板球",
+    sciencePost: "发布科学",
+    cricketDemo: "板球比赛更新：这条测试推文应触发通知.",
+    scienceDemo: "科学发现更新：这条测试推文应触发通知.",
+    currentSubscription: "当前订阅",
+    paymentsWindow: "付款仅在 IST 上午 10:00 到 11:00 之间接受.",
+    status: "状态",
+    expires: "到期",
+    currentPlan: "当前计划",
+    choosePlan: "选择计划",
+    profileSettings: "个人设置",
+    enableNotifications: "开启通知",
+    disableNotifications: "关闭通知",
+    keywordNotifications: "关键词通知",
+    language: "语言",
+    requestOtp: "请求 OTP",
+    verifyOtp: "验证 OTP",
+    otp: "OTP",
+  },
+  fr: {
+    home: "Accueil",
+    explore: "Explorer",
+    notifications: "Notifications",
+    yourNotifications: "Vos notifications",
+    noNotifications: "Aucune notification pour le moment.",
+    loginHistory: "Historique de connexion",
+    recentLogins: "Connexions recentes et evenements d'authentification.",
+    subscription: "Abonnement",
+    bookmarks: "Signets",
+    profile: "Profil",
+    more: "Plus",
+    subscribe: "S'abonner",
+    settings: "Parametres",
+    logout: "Se deconnecter",
+    forYou: "Pour vous",
+    following: "Abonnements",
+    loadingTweets: "Chargement des tweets...",
+    cricketPost: "Publier cricket",
+    sciencePost: "Publier science",
+    cricketDemo: "Actualite cricket : ce tweet de test doit afficher une notification.",
+    scienceDemo: "Actualite science : ce tweet de test doit afficher une notification.",
+    currentSubscription: "Abonnement actuel",
+    paymentsWindow: "Les paiements sont acceptes seulement entre 10:00 et 11:00 IST.",
+    status: "Statut",
+    expires: "Expire",
+    currentPlan: "Plan actuel",
+    choosePlan: "Choisir le plan",
+    profileSettings: "Parametres du profil",
+    enableNotifications: "Activer les notifications",
+    disableNotifications: "Desactiver les notifications",
+    keywordNotifications: "Notifications par mot-cle",
+    language: "Langue",
+    requestOtp: "Demander OTP",
+    verifyOtp: "Verifier OTP",
+    otp: "OTP",
+  },
+};
+
+// Shared UI copy kept separate so every language has the same key set.
+const extraTranslations: Record<Language, Record<string, string>> = {
+  en: { whatsHappening: "What's happening?", audioOtp: "Audio OTP", verify: "Verify", attached: "Attached", selected: "Selected", everyoneCanReply: "Everyone can reply", post: "Post", imageUploadFailed: "Image upload failed.", audioSizeLimit: "Audio file must be 100 MB or less.", audioDurationLimit: "Audio duration must be 5 minutes or less.", audioOtpSent: "OTP sent to your registered email. Enter it to attach audio.", audioOtpFailed: "Audio OTP request failed.", audioAttached: "Audio attached.", audioUploadFailed: "Audio upload failed.", noLoginHistory: "No login history available yet.", unknownBrowser: "Unknown browser", unknownOs: "Unknown OS", unknownDevice: "Unknown device", unknownIp: "Unknown IP", desktop: "desktop", on: "on", inactive: "inactive", notAvailable: "N/A", freePlan: "Free plan", subscriptionSuccess: "Subscription activated. Your invoice email has been generated.", freePlanActivated: "Free plan activated.", unlimitedTweets: "Unlimited tweets", tweetLimit: "{{count}} tweet maximum" },
+  hi: { whatsHappening: "क्या हो रहा है?", audioOtp: "ऑडियो OTP", verify: "सत्यापित करें", attached: "संलग्न", selected: "चयनित", everyoneCanReply: "सभी जवाब दे सकते हैं", post: "पोस्ट करें", imageUploadFailed: "छवि अपलोड नहीं हो सकी।", audioSizeLimit: "ऑडियो फ़ाइल 100 MB या उससे कम होनी चाहिए।", audioDurationLimit: "ऑडियो अवधि 5 मिनट या उससे कम होनी चाहिए।", audioOtpSent: "आपके पंजीकृत ईमेल पर OTP भेज दिया गया है। ऑडियो जोड़ने के लिए इसे दर्ज करें।", audioOtpFailed: "ऑडियो OTP अनुरोध विफल रहा।", audioAttached: "ऑडियो संलग्न किया गया।", audioUploadFailed: "ऑडियो अपलोड नहीं हो सका।", noLoginHistory: "अभी कोई लॉगिन इतिहास उपलब्ध नहीं है।", unknownBrowser: "अज्ञात ब्राउज़र", unknownOs: "अज्ञात OS", unknownDevice: "अज्ञात डिवाइस", unknownIp: "अज्ञात IP", desktop: "डेस्कटॉप", on: "पर", inactive: "निष्क्रिय", notAvailable: "उपलब्ध नहीं", freePlan: "मुफ़्त प्लान", currentPlanLabel: "वर्तमान प्लान" },
+  es: { whatsHappening: "¿Qué está pasando?", audioOtp: "OTP de audio", verify: "Verificar", attached: "Adjunto", selected: "Seleccionado", everyoneCanReply: "Todos pueden responder", post: "Publicar", imageUploadFailed: "No se pudo cargar la imagen.", audioSizeLimit: "El archivo de audio debe ser de 100 MB o menos.", audioDurationLimit: "La duración del audio debe ser de 5 minutos o menos.", audioOtpSent: "Se envió un OTP a tu correo registrado. Introdúcelo para adjuntar el audio.", audioOtpFailed: "Falló la solicitud de OTP de audio.", audioAttached: "Audio adjuntado.", audioUploadFailed: "No se pudo cargar el audio.", noLoginHistory: "Aún no hay historial de inicio de sesión.", unknownBrowser: "Navegador desconocido", unknownOs: "Sistema operativo desconocido", unknownDevice: "Dispositivo desconocido", unknownIp: "IP desconocida", desktop: "escritorio", on: "en", inactive: "inactivo", notAvailable: "No disponible", freePlan: "Plan gratuito", currentPlanLabel: "Plan actual" },
+  pt: { whatsHappening: "O que está acontecendo?", audioOtp: "OTP de áudio", verify: "Verificar", attached: "Anexado", selected: "Selecionado", everyoneCanReply: "Todos podem responder", post: "Publicar", imageUploadFailed: "Não foi possível enviar a imagem.", audioSizeLimit: "O arquivo de áudio deve ter no máximo 100 MB.", audioDurationLimit: "A duração do áudio deve ser de no máximo 5 minutos.", audioOtpSent: "Um OTP foi enviado para seu e-mail cadastrado. Digite-o para anexar o áudio.", audioOtpFailed: "Falha ao solicitar o OTP de áudio.", audioAttached: "Áudio anexado.", audioUploadFailed: "Não foi possível enviar o áudio.", noLoginHistory: "Ainda não há histórico de login.", unknownBrowser: "Navegador desconhecido", unknownOs: "Sistema operacional desconhecido", unknownDevice: "Dispositivo desconhecido", unknownIp: "IP desconhecido", desktop: "computador", on: "em", inactive: "inativo", notAvailable: "Não disponível", freePlan: "Plano gratuito", currentPlanLabel: "Plano atual" },
+  zh: { whatsHappening: "有什么新鲜事？", audioOtp: "音频 OTP", verify: "验证", attached: "已附加", selected: "已选择", everyoneCanReply: "所有人都可以回复", post: "发布", imageUploadFailed: "图片上传失败。", audioSizeLimit: "音频文件必须不超过 100 MB。", audioDurationLimit: "音频时长必须不超过 5 分钟。", audioOtpSent: "OTP 已发送至您的注册邮箱。请输入它以附加音频。", audioOtpFailed: "音频 OTP 请求失败。", audioAttached: "音频已附加。", audioUploadFailed: "音频上传失败。", noLoginHistory: "暂无登录历史。", unknownBrowser: "未知浏览器", unknownOs: "未知操作系统", unknownDevice: "未知设备", unknownIp: "未知 IP", desktop: "桌面设备", on: "位于", inactive: "未激活", notAvailable: "不适用", freePlan: "免费套餐", currentPlanLabel: "当前套餐" },
+  fr: { whatsHappening: "Que se passe-t-il ?", audioOtp: "OTP audio", verify: "Vérifier", attached: "Joint", selected: "Sélectionné", everyoneCanReply: "Tout le monde peut répondre", post: "Publier", imageUploadFailed: "Échec de l'envoi de l'image.", audioSizeLimit: "Le fichier audio doit faire 100 Mo ou moins.", audioDurationLimit: "La durée audio doit être de 5 minutes ou moins.", audioOtpSent: "Un OTP a été envoyé à votre e-mail enregistré. Saisissez-le pour joindre l'audio.", audioOtpFailed: "Échec de la demande d'OTP audio.", audioAttached: "Audio joint.", audioUploadFailed: "Échec de l'envoi de l'audio.", noLoginHistory: "Aucun historique de connexion pour le moment.", unknownBrowser: "Navigateur inconnu", unknownOs: "Système inconnu", unknownDevice: "Appareil inconnu", unknownIp: "IP inconnue", desktop: "ordinateur", on: "sur", inactive: "inactif", notAvailable: "Indisponible", freePlan: "Forfait gratuit", currentPlanLabel: "Forfait actuel" },
+};
+
+Object.entries(extraTranslations).forEach(([language, values]) => Object.assign(translations[language as Language], values));
+
+const subscriptionExtras: Record<Language, Record<string, string>> = {
+  en: {},
+  hi: { subscriptionSuccess: "सदस्यता सक्रिय हो गई। आपका इनवॉइस ईमेल भेज दिया गया है।", freePlanActivated: "मुफ़्त प्लान सक्रिय हो गया।", unlimitedTweets: "असीमित ट्वीट", tweetLimit: "अधिकतम {{count}} ट्वीट" },
+  es: { subscriptionSuccess: "Suscripción activada. Se ha generado tu correo de factura.", freePlanActivated: "Plan gratuito activado.", unlimitedTweets: "Tweets ilimitados", tweetLimit: "Máximo de {{count}} tweets" },
+  pt: { subscriptionSuccess: "Assinatura ativada. O e-mail da sua fatura foi gerado.", freePlanActivated: "Plano gratuito ativado.", unlimitedTweets: "Tweets ilimitados", tweetLimit: "Máximo de {{count}} tweets" },
+  zh: { subscriptionSuccess: "订阅已激活。您的发票邮件已生成。", freePlanActivated: "免费套餐已激活。", unlimitedTweets: "无限推文", tweetLimit: "最多 {{count}} 条推文" },
+  fr: { subscriptionSuccess: "Abonnement activé. Votre e-mail de facture a été généré.", freePlanActivated: "Forfait gratuit activé.", unlimitedTweets: "Tweets illimités", tweetLimit: "{{count}} tweet maximum" },
+};
+
+Object.entries(subscriptionExtras).forEach(([language, values]) => Object.assign(translations[language as Language], values));
+
+const sidebarExtras: Record<Language, Record<string, string>> = {
+  en: { search: "Search", subscribePremium: "Subscribe to Premium", premiumDescription: "Subscribe to unlock new features and, if eligible, receive a share of revenue.", youMightLike: "You might like", follow: "Follow", showMore: "Show more", terms: "Terms of Service", privacy: "Privacy Policy", cookies: "Cookie Policy", accessibility: "Accessibility", adsInfo: "Ads info" },
+  hi: { search: "खोजें", subscribePremium: "प्रीमियम की सदस्यता लें", premiumDescription: "नई सुविधाएँ अनलॉक करने और पात्र होने पर आय का हिस्सा पाने के लिए सदस्यता लें।", youMightLike: "आपको पसंद आ सकता है", follow: "फ़ॉलो करें", showMore: "और दिखाएँ", terms: "सेवा की शर्तें", privacy: "गोपनीयता नीति", cookies: "कुकी नीति", accessibility: "सुगम्यता", adsInfo: "विज्ञापन जानकारी" },
+  es: { search: "Buscar", subscribePremium: "Suscríbete a Premium", premiumDescription: "Suscríbete para desbloquear funciones nuevas y, si cumples los requisitos, recibir una parte de los ingresos.", youMightLike: "Te podría gustar", follow: "Seguir", showMore: "Mostrar más", terms: "Términos de servicio", privacy: "Política de privacidad", cookies: "Política de cookies", accessibility: "Accesibilidad", adsInfo: "Información de anuncios" },
+  pt: { search: "Pesquisar", subscribePremium: "Assine o Premium", premiumDescription: "Assine para desbloquear novos recursos e, se elegível, receber uma parte da receita.", youMightLike: "Você pode gostar", follow: "Seguir", showMore: "Mostrar mais", terms: "Termos de serviço", privacy: "Política de privacidade", cookies: "Política de cookies", accessibility: "Acessibilidade", adsInfo: "Informações sobre anúncios" },
+  zh: { search: "搜索", subscribePremium: "订阅高级版", premiumDescription: "订阅即可解锁新功能；如符合条件，还可获得部分收益。", youMightLike: "你可能喜欢", follow: "关注", showMore: "显示更多", terms: "服务条款", privacy: "隐私政策", cookies: "Cookie 政策", accessibility: "无障碍", adsInfo: "广告信息" },
+  fr: { search: "Rechercher", subscribePremium: "S'abonner à Premium", premiumDescription: "Abonnez-vous pour débloquer de nouvelles fonctionnalités et, si vous êtes éligible, recevoir une part des revenus.", youMightLike: "Vous pourriez aimer", follow: "Suivre", showMore: "Afficher plus", terms: "Conditions d'utilisation", privacy: "Politique de confidentialité", cookies: "Politique relative aux cookies", accessibility: "Accessibilité", adsInfo: "Infos publicitaires" },
+};
+
+Object.entries(sidebarExtras).forEach(([language, values]) => Object.assign(translations[language as Language], values));
+
+const authExtras: Record<Language, Record<string, string>> = {
+  en: { signIn: "Sign in", signInToX: "Sign in to X", createAccount: "Create account", displayName: "Display name", username: "Username", email: "Email", password: "Password", emailOrPhone: "Email or phone", emailOtp: "Email OTP", forgotPassword: "Forgot password?", backToSignIn: "Back to sign in", noAccount: "Don't have an account?", alreadyAccount: "Already have an account?", signUp: "Sign up", sendPassword: "Send password", accountCreated: "Account created successfully.", signedIn: "Signed in successfully.", emailRequired: "Email is required", passwordRequired: "Password is required", otpRequired: "OTP is required", displayNameRequired: "Display name is required", usernameRequired: "Username is required", invalidEmail: "Please enter a valid email", passwordLength: "Password must be at least 6 characters", usernameRule: "Username can contain only letters, numbers, and underscores" },
+  hi: { signIn: "साइन इन", signInToX: "X में साइन इन करें", createAccount: "खाता बनाएँ", displayName: "प्रदर्शित नाम", username: "उपयोगकर्ता नाम", email: "ईमेल", password: "पासवर्ड", emailOrPhone: "ईमेल या फ़ोन", emailOtp: "ईमेल OTP", forgotPassword: "पासवर्ड भूल गए?", backToSignIn: "साइन इन पर वापस जाएँ", noAccount: "क्या आपका खाता नहीं है?", alreadyAccount: "क्या आपके पास पहले से खाता है?", signUp: "साइन अप", sendPassword: "पासवर्ड भेजें", accountCreated: "खाता सफलतापूर्वक बन गया।", signedIn: "साइन इन सफल रहा।", emailRequired: "ईमेल आवश्यक है", passwordRequired: "पासवर्ड आवश्यक है", otpRequired: "OTP आवश्यक है", displayNameRequired: "प्रदर्शित नाम आवश्यक है", usernameRequired: "उपयोगकर्ता नाम आवश्यक है", invalidEmail: "मान्य ईमेल दर्ज करें", passwordLength: "पासवर्ड कम से कम 6 अक्षर का होना चाहिए", usernameRule: "उपयोगकर्ता नाम में केवल अक्षर, अंक और अंडरस्कोर हो सकते हैं" },
+  es: { signIn: "Iniciar sesión", signInToX: "Iniciar sesión en X", createAccount: "Crear cuenta", displayName: "Nombre visible", username: "Nombre de usuario", email: "Correo electrónico", password: "Contraseña", emailOrPhone: "Correo o teléfono", emailOtp: "OTP de correo", forgotPassword: "¿Olvidaste tu contraseña?", backToSignIn: "Volver a iniciar sesión", noAccount: "¿No tienes una cuenta?", alreadyAccount: "¿Ya tienes una cuenta?", signUp: "Registrarse", sendPassword: "Enviar contraseña", accountCreated: "Cuenta creada correctamente.", signedIn: "Sesión iniciada correctamente.", emailRequired: "El correo es obligatorio", passwordRequired: "La contraseña es obligatoria", otpRequired: "El OTP es obligatorio", displayNameRequired: "El nombre visible es obligatorio", usernameRequired: "El nombre de usuario es obligatorio", invalidEmail: "Introduce un correo válido", passwordLength: "La contraseña debe tener al menos 6 caracteres", usernameRule: "El nombre de usuario solo puede tener letras, números y guiones bajos" },
+  pt: { signIn: "Entrar", signInToX: "Entrar no X", createAccount: "Criar conta", displayName: "Nome de exibição", username: "Nome de usuário", email: "E-mail", password: "Senha", emailOrPhone: "E-mail ou telefone", emailOtp: "OTP por e-mail", forgotPassword: "Esqueceu a senha?", backToSignIn: "Voltar para entrar", noAccount: "Não tem uma conta?", alreadyAccount: "Já tem uma conta?", signUp: "Cadastrar", sendPassword: "Enviar senha", accountCreated: "Conta criada com sucesso.", signedIn: "Login realizado com sucesso.", emailRequired: "O e-mail é obrigatório", passwordRequired: "A senha é obrigatória", otpRequired: "O OTP é obrigatório", displayNameRequired: "O nome de exibição é obrigatório", usernameRequired: "O nome de usuário é obrigatório", invalidEmail: "Digite um e-mail válido", passwordLength: "A senha deve ter pelo menos 6 caracteres", usernameRule: "O nome de usuário só pode ter letras, números e sublinhados" },
+  zh: { signIn: "登录", signInToX: "登录 X", createAccount: "创建账户", displayName: "显示名称", username: "用户名", email: "电子邮箱", password: "密码", emailOrPhone: "电子邮箱或电话", emailOtp: "邮箱 OTP", forgotPassword: "忘记密码？", backToSignIn: "返回登录", noAccount: "没有账户？", alreadyAccount: "已有账户？", signUp: "注册", sendPassword: "发送密码", accountCreated: "账户创建成功。", signedIn: "登录成功。", emailRequired: "需要电子邮箱", passwordRequired: "需要密码", otpRequired: "需要 OTP", displayNameRequired: "需要显示名称", usernameRequired: "需要用户名", invalidEmail: "请输入有效的电子邮箱", passwordLength: "密码至少需要 6 个字符", usernameRule: "用户名只能包含字母、数字和下划线" },
+  fr: { signIn: "Se connecter", signInToX: "Se connecter à X", createAccount: "Créer un compte", displayName: "Nom affiché", username: "Nom d'utilisateur", email: "E-mail", password: "Mot de passe", emailOrPhone: "E-mail ou téléphone", emailOtp: "OTP par e-mail", forgotPassword: "Mot de passe oublié ?", backToSignIn: "Retour à la connexion", noAccount: "Vous n'avez pas de compte ?", alreadyAccount: "Vous avez déjà un compte ?", signUp: "S'inscrire", sendPassword: "Envoyer le mot de passe", accountCreated: "Compte créé avec succès.", signedIn: "Connexion réussie.", emailRequired: "L'e-mail est requis", passwordRequired: "Le mot de passe est requis", otpRequired: "L'OTP est requis", displayNameRequired: "Le nom affiché est requis", usernameRequired: "Le nom d'utilisateur est requis", invalidEmail: "Saisissez un e-mail valide", passwordLength: "Le mot de passe doit compter au moins 6 caractères", usernameRule: "Le nom d'utilisateur ne peut contenir que des lettres, des chiffres et des traits de soulignement" },
+};
+
+Object.entries(authExtras).forEach(([language, values]) => Object.assign(translations[language as Language], values));
+
+const profileExtras: Record<Language, Record<string, string>> = {
+  en: { newLike: "New like", editProfile: "Edit profile", posts: "Posts", replies: "Replies", highlights: "Highlights", articles: "Articles", media: "Media", postsCount: "{{count}} posts", noPosts: "You haven't posted yet", postsAppearHere: "When you post, it will show up here.", noReplies: "You haven't replied yet", repliesAppearHere: "When you reply to a post, it will show up here.", mediaEmptyTitle: "Lights, camera, attachments!", mediaAppearHere: "When you post photos or videos, they will show up here.", noArticles: "You haven't written any articles", articlesAppearHere: "When you write articles, they will show up here.", save: "Save", saving: "Saving..." },
+  hi: { newLike: "नया लाइक", editProfile: "प्रोफ़ाइल संपादित करें", posts: "पोस्ट", replies: "जवाब", highlights: "हाइलाइट्स", articles: "लेख", media: "मीडिया", postsCount: "{{count}} पोस्ट", noPosts: "आपने अभी तक पोस्ट नहीं किया है", postsAppearHere: "जब आप पोस्ट करेंगे, तो वह यहाँ दिखाई देगा।", noReplies: "आपने अभी तक जवाब नहीं दिया है", repliesAppearHere: "जब आप किसी पोस्ट का जवाब देंगे, तो वह यहाँ दिखाई देगा।", mediaEmptyTitle: "लाइट्स, कैमरा, अटैचमेंट्स!", mediaAppearHere: "जब आप फ़ोटो या वीडियो पोस्ट करेंगे, तो वे यहाँ दिखाई देंगे।", noArticles: "आपने अभी तक कोई लेख नहीं लिखा है", articlesAppearHere: "जब आप लेख लिखेंगे, तो वे यहाँ दिखाई देंगे।", save: "सहेजें", saving: "सहेजा जा रहा है..." },
+  es: { newLike: "Nuevo me gusta", editProfile: "Editar perfil", posts: "Publicaciones", replies: "Respuestas", highlights: "Destacados", articles: "Artículos", media: "Multimedia", postsCount: "{{count}} publicaciones", noPosts: "Aún no has publicado", postsAppearHere: "Cuando publiques, aparecerá aquí.", noReplies: "Aún no has respondido", repliesAppearHere: "Cuando respondas a una publicación, aparecerá aquí.", mediaEmptyTitle: "¡Luces, cámara, adjuntos!", mediaAppearHere: "Cuando publiques fotos o vídeos, aparecerán aquí.", noArticles: "Aún no has escrito artículos", articlesAppearHere: "Cuando escribas artículos, aparecerán aquí.", save: "Guardar", saving: "Guardando..." },
+  pt: { newLike: "Nova curtida", editProfile: "Editar perfil", posts: "Publicações", replies: "Respostas", highlights: "Destaques", articles: "Artigos", media: "Mídia", postsCount: "{{count}} publicações", noPosts: "Você ainda não publicou", postsAppearHere: "Quando você publicar, aparecerá aqui.", noReplies: "Você ainda não respondeu", repliesAppearHere: "Quando você responder a uma publicação, aparecerá aqui.", mediaEmptyTitle: "Luzes, câmera, anexos!", mediaAppearHere: "Quando você publicar fotos ou vídeos, eles aparecerão aqui.", noArticles: "Você ainda não escreveu artigos", articlesAppearHere: "Quando você escrever artigos, eles aparecerão aqui.", save: "Salvar", saving: "Salvando..." },
+  zh: { newLike: "新的点赞", editProfile: "编辑个人资料", posts: "帖子", replies: "回复", highlights: "精选", articles: "文章", media: "媒体", postsCount: "{{count}} 条帖子", noPosts: "你还没有发布帖子", postsAppearHere: "发布后，它会显示在这里。", noReplies: "你还没有回复", repliesAppearHere: "回复帖子后，它会显示在这里。", mediaEmptyTitle: "灯光、镜头、附件！", mediaAppearHere: "发布照片或视频后，它们会显示在这里。", noArticles: "你还没有写文章", articlesAppearHere: "撰写文章后，它们会显示在这里。", save: "保存", saving: "正在保存..." },
+  fr: { newLike: "Nouveau J’aime", editProfile: "Modifier le profil", posts: "Publications", replies: "Réponses", highlights: "À la une", articles: "Articles", media: "Médias", postsCount: "{{count}} publications", noPosts: "Vous n’avez pas encore publié", postsAppearHere: "Lorsque vous publierez, cela apparaîtra ici.", noReplies: "Vous n’avez pas encore répondu", repliesAppearHere: "Lorsque vous répondrez à une publication, cela apparaîtra ici.", mediaEmptyTitle: "Lumières, caméra, pièces jointes !", mediaAppearHere: "Lorsque vous publierez des photos ou des vidéos, elles apparaîtront ici.", noArticles: "Vous n’avez pas encore écrit d’articles", articlesAppearHere: "Lorsque vous écrirez des articles, ils apparaîtront ici.", save: "Enregistrer", saving: "Enregistrement..." },
+};
+
+Object.entries(profileExtras).forEach(([language, values]) => Object.assign(translations[language as Language], values));
+
+export const getSavedLanguage = (): Language => {
+  if (typeof window === "undefined") return "en";
+  const language = window.localStorage.getItem("twillerLanguage");
+  return language && Object.hasOwn(translations, language) ? language as Language : "en";
+};
+
+if (!i18n.isInitialized) {
+  i18n.use(initReactI18next).init({
+    resources: Object.fromEntries(
+      Object.entries(translations).map(([lang, values]) => [lang, { translation: values }])
+    ),
+    lng: "en",
+    fallbackLng: "en",
+    interpolation: { escapeValue: false },
+  });
+}
+
+export const translate = (lang: Language, key: string, variables: Record<string, string | number> = {}) => {
+  const value = translations[lang]?.[key] || translations.en[key] || key;
+  return value.replace(/{{(\w+)}}/g, (_match, name) => String(variables[name] ?? ""));
+};
+
+export default i18n;
