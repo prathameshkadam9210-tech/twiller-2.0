@@ -76,26 +76,26 @@ export default function Sidebar({ currentPage = 'home', onNavigate }: SidebarPro
   ];
 
   return (
-    <div className="flex flex-col h-screen w-64 border-r border-gray-800 bg-black">
-      <div className="p-4">
+    <div className="flex h-screen w-full flex-col overflow-hidden border-r border-gray-800 bg-black">
+      <div className="p-3 md:p-4">
         <TwitterLogo size="lg" className="text-white" />
       </div>
       
-      <nav className="flex-1 px-2">
+      <nav className="flex-1 overflow-y-auto px-2">
         <ul className="space-y-2">
           {navigation.map((item) => (
             <li key={item.name}>
               <Button
                 variant="ghost"
-                className={`w-full justify-start text-xl py-6 px-4 rounded-full ${
+                className={`w-full justify-center px-2 py-6 text-xl md:justify-start md:px-4 rounded-full ${
                   item.current ? 'bg-blue-500 font-bold' : 'font-normal hover:bg-gray-900'
                 } text-white hover:text-white`}
                 onClick={() => onNavigate?.(item.page)}
               >
-                <item.icon className="mr-4 h-7 w-7" />
-                {item.name}
+                <item.icon className="h-7 w-7 md:mr-4" />
+                <span className="hidden md:inline">{item.name}</span>
                 {item.badge && unreadNotifications > 0 && (
-                  <span className="ml-2 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="absolute ml-8 -mt-5 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white md:static md:ml-2 md:mt-0">
                     {unreadNotifications > 99 ? '99+' : unreadNotifications}
                   </span>
                 )}
@@ -106,25 +106,25 @@ export default function Sidebar({ currentPage = 'home', onNavigate }: SidebarPro
       </nav>
       
       {user && (
-        <div className="p-4 border-t border-gray-800">
+        <div className="border-t border-gray-800 p-2 md:p-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="w-full justify-start p-3 rounded-full hover:bg-gray-900"
+                className="w-full justify-center rounded-full p-2 hover:bg-gray-900 md:justify-start md:p-3"
               >
-                <Avatar className="h-10 w-10 mr-3">
+                <Avatar className="h-10 w-10 md:mr-3">
                   <AvatarImage src={user.avatar} alt={user.displayName} />
                   <AvatarFallback>{user.displayName[0]}</AvatarFallback>
                 </Avatar>
-                <div className="flex-1 text-left">
+                <div className="hidden flex-1 text-left md:block">
                   <div className="text-white font-semibold">{user.displayName}</div>
                   <div className="text-gray-400 text-sm">@{user.username}</div>
                 </div>
-                <MoreHorizontal className="h-5 w-5 text-gray-400" />
+                <MoreHorizontal className="hidden h-5 w-5 text-gray-400 md:block" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 bg-black border-gray-800">
+            <DropdownMenuContent side="right" align="end" className="w-56 bg-black border-gray-800">
               <DropdownMenuItem className="text-white hover:bg-gray-900">
                 <Settings className="mr-2 h-4 w-4" />
                 {translate(lang, "settings")}

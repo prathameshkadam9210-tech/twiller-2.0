@@ -260,6 +260,17 @@ const subscriptionExtras: Record<Language, Record<string, string>> = {
 
 Object.entries(subscriptionExtras).forEach(([language, values]) => Object.assign(translations[language as Language], values));
 
+const planTranslations: Record<Language, Record<string, string>> = {
+  en: { planBronze: "Bronze", planSilver: "Silver", planGold: "Gold" },
+  hi: { planBronze: "कांस्य", planSilver: "रजत", planGold: "स्वर्ण" },
+  es: { planBronze: "Bronce", planSilver: "Plata", planGold: "Oro" },
+  pt: { planBronze: "Bronze", planSilver: "Prata", planGold: "Ouro" },
+  zh: { planBronze: "青铜", planSilver: "白银", planGold: "黄金" },
+  fr: { planBronze: "Bronze", planSilver: "Argent", planGold: "Or" },
+};
+
+Object.entries(planTranslations).forEach(([language, values]) => Object.assign(translations[language as Language], values));
+
 const sidebarExtras: Record<Language, Record<string, string>> = {
   en: { search: "Search", subscribePremium: "Subscribe to Premium", premiumDescription: "Subscribe to unlock new features and, if eligible, receive a share of revenue.", youMightLike: "You might like", follow: "Follow", showMore: "Show more", terms: "Terms of Service", privacy: "Privacy Policy", cookies: "Cookie Policy", accessibility: "Accessibility", adsInfo: "Ads info" },
   hi: { search: "खोजें", subscribePremium: "प्रीमियम की सदस्यता लें", premiumDescription: "नई सुविधाएँ अनलॉक करने और पात्र होने पर आय का हिस्सा पाने के लिए सदस्यता लें।", youMightLike: "आपको पसंद आ सकता है", follow: "फ़ॉलो करें", showMore: "और दिखाएँ", terms: "सेवा की शर्तें", privacy: "गोपनीयता नीति", cookies: "कुकी नीति", accessibility: "सुगम्यता", adsInfo: "विज्ञापन जानकारी" },

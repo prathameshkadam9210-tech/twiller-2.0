@@ -139,8 +139,8 @@ export default function ProfilePage() {
 
   const sendLanguageOtp = async () => {
     try {
-      await requestLanguageOtp(selectedLanguage);
-      setSettingsMessage(selectedLanguage === "fr" ? "OTP sent to registered email." : "OTP sent to registered mobile number.");
+      const response = await requestLanguageOtp(selectedLanguage);
+      setSettingsMessage(response?.data?.channel === "sms" ? "OTP sent to registered mobile number." : "OTP sent to registered email.");
     } catch (error: any) {
       setSettingsMessage(error.response?.data?.error || "Unable to send language OTP.");
     }
@@ -346,15 +346,16 @@ export default function ProfilePage() {
                 {user.keywordNotificationsEnabled !== false ? translate(lang, "disableNotifications") : translate(lang, "enableNotifications")}
               </Button>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="space-y-3">
               <div className="flex items-center gap-2 text-white font-semibold">
                 <Languages className="h-4 w-4 text-blue-400" />
                 {translate(lang, "language")}
               </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto]">
               <select
                 value={selectedLanguage}
                 onChange={(e) => setSelectedLanguage(e.target.value)}
-                className="h-10 rounded-md border border-gray-700 bg-black px-3 text-white"
+                className="h-10 min-w-0 w-full rounded-md border border-gray-700 bg-black px-3 text-white"
               >
                 <option value="en">English</option>
                 <option value="hi">Hindi</option>
@@ -363,18 +364,19 @@ export default function ProfilePage() {
                 <option value="zh">Chinese</option>
                 <option value="fr">French</option>
               </select>
-              <Button type="button" size="sm" variant="outline" className="border-gray-600 bg-black text-white" onClick={sendLanguageOtp}>
+              <Button type="button" size="sm" variant="outline" className="w-full border-gray-600 bg-black text-white" onClick={sendLanguageOtp}>
                 {translate(lang, "requestOtp")}
               </Button>
               <input
                 value={languageOtp}
                 onChange={(e) => setLanguageOtp(e.target.value)}
                 placeholder={translate(lang, "otp")}
-                className="h-10 rounded-md border border-gray-700 bg-black px-3 text-white"
+                className="h-10 min-w-0 w-full rounded-md border border-gray-700 bg-black px-3 text-white"
               />
-              <Button type="button" size="sm" className="bg-blue-500 hover:bg-blue-600" onClick={verifyLanguageOtp} disabled={!languageOtp}>
+              <Button type="button" size="sm" className="w-full bg-blue-500 hover:bg-blue-600" onClick={verifyLanguageOtp} disabled={!languageOtp}>
                 {translate(lang, "verifyOtp")}
               </Button>
+              </div>
             </div>
             {settingsMessage && <p className="text-sm text-gray-300">{settingsMessage}</p>}
           </CardContent>

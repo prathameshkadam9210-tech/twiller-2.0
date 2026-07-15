@@ -61,7 +61,7 @@ export default function RightSidebar() {
   const actionLabel = (person: Person) => person.followStatus === "following" ? "Following" : person.followStatus === "requested" ? "Requested" : person.followsYou ? "Follow back" : translate(lang, "follow");
 
   return (
-    <div className="w-80 p-4 space-y-4">
+    <div className="w-full space-y-4 p-4">
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
         <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search username or email" className="pl-12 bg-gray-900 border-gray-800 text-white placeholder-gray-400 rounded-full py-3" />

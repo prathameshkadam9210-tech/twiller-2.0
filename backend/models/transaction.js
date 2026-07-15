@@ -8,7 +8,10 @@ const TransactionSchema = mongoose.Schema({
   currency: { type: String, default: "INR" },
   provider: { type: String, default: "razorpay" },
   providerOrderId: { type: String, default: "" },
-  providerPaymentId: { type: String, default: "" },
+  // Payment IDs are not available until the provider confirms a payment. Keeping
+  // this field absent (rather than using an empty string) lets the sparse unique
+  // index enforce uniqueness only for real provider payment IDs.
+  providerPaymentId: { type: String, trim: true, sparse: true, unique: true },
   providerSignature: { type: String, default: "" },
   status: { type: String, enum: ["created", "paid", "failed"], default: "created" },
   invoice: {

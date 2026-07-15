@@ -28,6 +28,10 @@ export default function SubscriptionPage() {
 
   const currentPlan = user?.subscription;
   const lang: Language = (user?.language as Language) || "en";
+  const planLabel = (plan?: string) => {
+    const key = plan === "Free" ? "freePlan" : `plan${plan}`;
+    return translate(lang, key);
+  };
 
   useEffect(() => {
     if (document.getElementById("razorpay-checkout")) return;
@@ -106,7 +110,7 @@ export default function SubscriptionPage() {
             <CreditCard className="h-6 w-6 text-blue-400" />
             <div>
               <h2 className="text-lg font-semibold text-white">{translate(lang, "currentSubscription")}</h2>
-              <p className="text-gray-400">{currentPlan?.plan || translate(lang, "freePlan")}</p>
+              <p className="text-gray-400">{planLabel(currentPlan?.plan || "Free")}</p>
             </div>
           </div>
           <div className="space-y-2 text-sm text-gray-300">
@@ -121,7 +125,7 @@ export default function SubscriptionPage() {
           <Card key={plan.id} className="bg-gray-900 border-gray-800">
             <CardContent>
               <div className="mb-4">
-                <h3 className="text-xl font-semibold text-white">{plan.id === "Free" ? translate(lang, "freePlan") : plan.id}</h3>
+                <h3 className="text-xl font-semibold text-white">{planLabel(plan.id)}</h3>
                 <p className="text-gray-400 text-sm">{plan.price}</p>
               </div>
               <p className="text-gray-300 mb-6">{plan.limit === -1 ? translate(lang, "unlimitedTweets") : translate(lang, "tweetLimit", { count: plan.limit })}</p>

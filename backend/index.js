@@ -109,6 +109,10 @@ const mailer =
       })
     : null;
 
+const smsConfigured = Boolean(
+  process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER
+);
+
 const getIstParts = (date = new Date()) => {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
@@ -209,8 +213,24 @@ const createInvoicePdf = ({ user, transaction, purchaseDate, expiryDate }) => {
 };
 
 const sendSms = async ({ to, text }) => {
-  // An SMS integration must be configured before SMS-dependent flows can claim delivery.
-  throw new Error("SMS provider is not configured.");
+  if (!smsConfigured) throw new Error("SMS delivery is not configured.");
+  const credentials = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64");
+  const body = new URLSearchParams({ To: to, From: process.env.TWILIO_FROM_NUMBER, Body: text });
+  const response = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,
+    { method: "POST", headers: { Authorization: `Basic ${credentials}`, "Content-Type": "application/x-www-form-urlencoded" }, body }
+  );
+  if (!response.ok) {
+    const details = await response.json().catch(() => ({}));
+    throw new Error(details.message || "SMS delivery failed.");
+  }
+  return true;
+};
+
+const getOtpDelivery = (user) => {
+  if (smsConfigured && user.phone) return { channel: "sms", target: user.phone };
+  if (user.email) return { channel: "email", target: user.email };
+  return null;
 };
 
 const createOtp = async ({ user, purpose, channel, target, deliveryTarget }) => {
@@ -276,7 +296,7 @@ const sendInvoiceEmail = async ({ user, transaction }) => {
   await transaction.save();
 };
 
-const activateSubscription = async ({ user, plan, providerOrderId, providerPaymentId = "", providerSignature = "" }) => {
+const activateSubscription = async ({ user, plan, providerOrderId, providerPaymentId, providerSignature = "" }) => {
   const now = new Date();
   const expiresAt = new Date(now);
   expiresAt.setMonth(expiresAt.getMonth() + 1);
@@ -303,7 +323,7 @@ const activateSubscription = async ({ user, plan, providerOrderId, providerPayme
         plan,
         amount: planConfig.amount,
         providerOrderId,
-        providerPaymentId,
+        ...(providerPaymentId ? { providerPaymentId } : {}),
         providerSignature,
         status: "paid",
         invoice: { number: invoiceNumber, purchaseDate: now, expiryDate: expiresAt },
@@ -562,7 +582,10 @@ app.post("/forgot-password", authLimiter, async (req, res) => {
 
     const generatedPassword = generateAlphaPassword();
     const generatedPasswordHash = await bcrypt.hash(generatedPassword, 10);
-    const channel = identifier.includes("@") ? "email" : "sms";
+    const requestedSms = !identifier.includes("@");
+    const delivery = requestedSms ? getOtpDelivery(user) : { channel: "email", target: user.email };
+    if (!delivery) return res.status(400).send({ error: "Registered email or mobile number is required" });
+    const channel = delivery.channel;
     await PasswordResetRequest.create({
       user: user._id,
       identifier,
@@ -575,8 +598,8 @@ app.post("/forgot-password", authLimiter, async (req, res) => {
     await user.save();
 
     const text = `Your new Twiller password is ${generatedPassword}`;
-    if (channel === "email") await sendEmail({ to: user.email, subject: "Your Twiller password reset", text });
-    else await sendSms({ to: user.phone, text });
+    if (channel === "email") await sendEmail({ to: delivery.target, subject: "Your Twiller password reset", text });
+    else await sendSms({ to: delivery.target, text });
 
     return res.status(200).send({ message: "New password sent to your registered contact." });
   } catch (error) {
@@ -724,9 +747,9 @@ app.post("/language/request-otp", authLimiter, async (req, res) => {
     }
     const user = await User.findOne({ email });
     if (!user) return res.status(404).send({ error: "User not found" });
-    const channel = language === "fr" ? "email" : "sms";
-    const target = channel === "email" ? user.email : user.phone;
-    if (!target) return res.status(400).send({ error: `Registered ${channel === "email" ? "email" : "mobile number"} is required` });
+    const delivery = language === "fr" ? { channel: "email", target: user.email } : getOtpDelivery(user);
+    if (!delivery?.target) return res.status(400).send({ error: "Registered email or mobile number is required" });
+    const { channel, target } = delivery;
     const otp = await createOtp({
       user,
       purpose: "language_change",
@@ -734,7 +757,7 @@ app.post("/language/request-otp", authLimiter, async (req, res) => {
       target: `${language}:${target}`,
       deliveryTarget: target,
     });
-    return res.status(200).send({ ...otp, target: channel === "email" ? user.email : user.phone });
+    return res.status(200).send({ ...otp, target });
   } catch (error) {
     return res.status(400).send({ error: error.message });
   }
@@ -748,8 +771,9 @@ app.post("/language/verify", authLimiter, async (req, res) => {
     }
     const user = await User.findOne({ email });
     if (!user) return res.status(404).send({ error: "User not found" });
-    const channel = language === "fr" ? "email" : "sms";
-    const target = channel === "email" ? user.email : user.phone;
+    const delivery = language === "fr" ? { channel: "email", target: user.email } : getOtpDelivery(user);
+    if (!delivery?.target) return res.status(400).send({ error: "Registered email or mobile number is required" });
+    const { target } = delivery;
     const record = await verifyOtpRecord({
       userId: user._id,
       purpose: "language_change",
@@ -1072,7 +1096,16 @@ if (!url) {
 } else {
   mongoose
     .connect(url)
-    .then(() => {
+    .then(async () => {
+      // Older deployments used a regular unique index and stored empty strings
+      // for unpaid orders. Migrate that data before recreating the index as sparse.
+      await Transaction.updateMany({ providerPaymentId: "" }, { $unset: { providerPaymentId: 1 } });
+      const indexes = await Transaction.collection.indexes();
+      const paymentIndex = indexes.find((index) => index.name === "providerPaymentId_1");
+      if (paymentIndex && (!paymentIndex.sparse || !paymentIndex.unique)) {
+        await Transaction.collection.dropIndex(paymentIndex.name);
+      }
+      await Transaction.collection.createIndex({ providerPaymentId: 1 }, { name: "providerPaymentId_1", unique: true, sparse: true });
       isDbConnected = true;
       console.log("Connected to MongoDB");
     })

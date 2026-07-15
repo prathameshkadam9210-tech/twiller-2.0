@@ -30,11 +30,11 @@ const Mainlayout = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex justify-center">
-      <div className="w-20 sm:w-24 md:w-64 border-r border-gray-800">
+    <div className="flex min-h-screen justify-center bg-black text-white">
+      <aside className="sticky top-0 h-screen w-20 shrink-0 self-start sm:w-24 md:w-64">
         <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
-      </div>
-      <main className="flex-1 max-w-2xl border-x border-gray-800">
+      </aside>
+      <main className="min-w-0 max-w-2xl flex-1 border-x border-gray-800">
         {currentPage === "profile" ? (
           <ProfilePage />
         ) : currentPage === "notifications" ? (
@@ -47,9 +47,9 @@ const Mainlayout = ({ children }: { children: React.ReactNode }) => {
           children
         )}
       </main>
-      <div className="hidden lg:block w-80 p-4">
+      <aside className="sticky top-0 hidden h-screen w-80 shrink-0 self-start overflow-y-auto lg:block">
         <RightSidebar />
-      </div>
+      </aside>
     </div>
   );
 };
