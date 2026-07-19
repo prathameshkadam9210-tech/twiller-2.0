@@ -18,7 +18,8 @@ if (!process.env.NEXT_PUBLIC_BACKEND_URL && !process.env.BACKEND_URL) {
 
 const axiosInstance = axios.create({
   baseURL: backendUrl,
-  timeout: 15000,
+  // Render free instances can need more than 15 seconds to wake after inactivity.
+  timeout: 60000,
 });
 
 axiosInstance.interceptors.response.use(
