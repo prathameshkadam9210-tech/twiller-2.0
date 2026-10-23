@@ -45,25 +45,25 @@ const Editprofile = ({ isopen, onclose }: any) => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.displayName.trim()) {
-      newErrors.displayName = "Display name is required";
+      newErrors.displayName = translate(lang, "displayNameRequiredError");
     } else if (formData.displayName.length > 50) {
-      newErrors.displayName = "Display name must be 50 characters or less";
+      newErrors.displayName = translate(lang, "displayNameMaxError");
     }
 
     if (formData.bio.length > 160) {
-      newErrors.bio = "Bio must be 160 characters or less";
+      newErrors.bio = translate(lang, "bioMaxError");
     }
 
     if (formData.website && formData.website.length > 100) {
-      newErrors.website = "Website must be 100 characters or less";
+      newErrors.website = translate(lang, "websiteMaxError");
     }
 
     if (formData.location && formData.location.length > 30) {
-      newErrors.location = "Location must be 30 characters or less";
+      newErrors.location = translate(lang, "locationMaxError");
     }
 
     if (formData.phone && !/^[0-9+\-\s]{8,20}$/.test(formData.phone)) {
-      newErrors.phone = "Enter a valid phone number";
+      newErrors.phone = translate(lang, "validPhoneError");
     }
 
     setError(newErrors);
@@ -108,7 +108,7 @@ const Editprofile = ({ isopen, onclose }: any) => {
         setFormdata((prev) => ({ ...prev, [field]: url }));
       }
     } catch (error: any) {
-      setError({ general: error.response?.data?.error || error.message || "Image upload failed." });
+      setError({ general: error.response?.data?.error || error.message || translate(lang, "imageUploadFailed") });
     } finally {
       setIsLoading(false);
     }
@@ -233,7 +233,7 @@ const Editprofile = ({ isopen, onclose }: any) => {
               {/* Display Name */}
               <div className="space-y-2">
                 <Label htmlFor="displayName" className="text-white">
-                  Name
+                  {translate(lang, "fieldName")}
                 </Label>
                 <Input
                   id="displayName"
@@ -243,7 +243,7 @@ const Editprofile = ({ isopen, onclose }: any) => {
                     handleInputChange("displayName", e.target.value)
                   }
                   className="bg-transparent border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                  placeholder="Your display name"
+                  placeholder={translate(lang, "yourDisplayName")}
                   maxLength={50}
                   disabled={isLoading}
                 />
@@ -260,14 +260,14 @@ const Editprofile = ({ isopen, onclose }: any) => {
               {/* Bio */}
               <div className="space-y-2">
                 <Label htmlFor="bio" className="text-white">
-                  Bio
+                  {translate(lang, "fieldBio")}
                 </Label>
                 <Textarea
                   id="bio"
                   value={formData.bio}
                   onChange={(e) => handleInputChange("bio", e.target.value)}
                   className="bg-transparent border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 resize-none min-h-[100px]"
-                  placeholder="Tell the world about yourself"
+                  placeholder={translate(lang, "tellAboutYourself")}
                   maxLength={160}
                   disabled={isLoading}
                 />
@@ -282,7 +282,7 @@ const Editprofile = ({ isopen, onclose }: any) => {
               {/* Location */}
               <div className="space-y-2">
                 <Label htmlFor="location" className="text-white">
-                  Location
+                  {translate(lang, "fieldLocation")}
                 </Label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -294,7 +294,7 @@ const Editprofile = ({ isopen, onclose }: any) => {
                       handleInputChange("location", e.target.value)
                     }
                     className="pl-10 bg-transparent border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                    placeholder="Where are you located?"
+                    placeholder={translate(lang, "whereLocated")}
                     maxLength={30}
                     disabled={isLoading}
                   />
@@ -312,7 +312,7 @@ const Editprofile = ({ isopen, onclose }: any) => {
               {/* Website */}
               <div className="space-y-2">
                 <Label htmlFor="website" className="text-white">
-                  Website
+                  {translate(lang, "fieldWebsite")}
                 </Label>
                 <div className="relative">
                   <LinkIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -324,7 +324,7 @@ const Editprofile = ({ isopen, onclose }: any) => {
                       handleInputChange("website", e.target.value)
                     }
                     className="pl-10 bg-transparent border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                    placeholder="Your website URL"
+                    placeholder={translate(lang, "yourWebsiteUrl")}
                     maxLength={100}
                     disabled={isLoading}
                   />
@@ -341,7 +341,7 @@ const Editprofile = ({ isopen, onclose }: any) => {
 
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-white">
-                  Phone
+                  {translate(lang, "fieldPhone")}
                 </Label>
                 <Input
                   id="phone"
@@ -349,7 +349,7 @@ const Editprofile = ({ isopen, onclose }: any) => {
                   value={formData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
                   className="bg-transparent border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                  placeholder="Registered mobile number"
+                  placeholder={translate(lang, "registeredMobileNumber")}
                   maxLength={20}
                   disabled={isLoading}
                 />

@@ -101,7 +101,7 @@ const tweets: Tweet[] = [
   },
 ];
 export default function ProfilePage() {
-  const { user, refreshUser, requestLanguageOtp, setLanguage, updateProfile } = useAuth();
+  const { user, refreshUser, setLanguage, requestLanguageOtp, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState("posts");
   const [showEditModal, setShowEditModal] = useState(false);
   const [tweets, setTweets] = useState<any>([]);
@@ -110,6 +110,15 @@ export default function ProfilePage() {
   const [selectedLanguage, setSelectedLanguage] = useState(user?.language || "en");
   const [languageOtp, setLanguageOtp] = useState("");
   const [settingsMessage, setSettingsMessage] = useState("");
+  const [loginHistory, setLoginHistory] = useState<Array<{
+    method: string;
+    ip: string;
+    browser?: string;
+    operatingSystem?: string;
+    deviceType?: string;
+    timestamp: string;
+  }>>([]);
+  const [loginHistoryError, setLoginHistoryError] = useState("");
   const fetchTweets = async () => {
     try {
       setloading(true);
@@ -127,22 +136,73 @@ export default function ProfilePage() {
   useEffect(() => {
     setSelectedLanguage(user?.language || "en");
   }, [user?.language]);
+  useEffect(() => {
+    if (!user?.email) return;
+    let cancelled = false;
+    axiosInstance.get("/login-history", { params: { email: user.email } })
+      .then((response) => {
+        if (!cancelled) setLoginHistory(response.data || []);
+      })
+      .catch((error) => {
+        console.error("Unable to load login history:", error);
+        if (!cancelled) {
+          setLoginHistoryError(error.response?.data?.error || "Unable to load login history.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.email]);
 
   if (!user) return null;
   const lang: Language = (user.language as Language) || "en";
 
   const updateNotificationPreference = async (enabled: boolean) => {
-    await axiosInstance.patch("/notification-settings", { email: user.email, enabled });
-    await refreshUser();
-    setSettingsMessage(enabled ? translate(lang, "enableNotifications") : translate(lang, "disableNotifications"));
+    try {
+      await axiosInstance.patch("/notification-settings", { email: user.email, enabled });
+      await refreshUser();
+      if (enabled) {
+        if (!("Notification" in window)) {
+          setSettingsMessage(translate(lang, "notificationsUnsupported"));
+          return;
+        }
+        const permission = Notification.permission === "default"
+          ? await Notification.requestPermission()
+          : Notification.permission;
+        setSettingsMessage(translate(
+          lang,
+          permission === "granted" ? "enableNotifications" : "browserPermissionDenied"
+        ));
+        return;
+      }
+      setSettingsMessage(translate(lang, "disableNotifications"));
+    } catch (error: any) {
+      setSettingsMessage(error.response?.data?.error || error.message || "Unable to update notification preference.");
+    }
+  };
+
+  const requestBrowserPermission = async () => {
+    if (!("Notification" in window)) {
+      setSettingsMessage(translate(lang, "notificationsUnsupported"));
+      return;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      setSettingsMessage(translate(
+        lang,
+        permission === "granted" ? "browserPermissionGranted" : "browserPermissionDenied"
+      ));
+    } catch (error: any) {
+      setSettingsMessage(error.message || translate(lang, "notificationPermissionRequestFailed"));
+    }
   };
 
   const sendLanguageOtp = async () => {
     try {
       const response = await requestLanguageOtp(selectedLanguage);
-      setSettingsMessage(response?.data?.channel === "sms" ? "OTP sent to registered mobile number." : "OTP sent to registered email.");
+      setSettingsMessage(`${translate(lang, "requestOtp")}: ${response?.data?.target || ""}`);
     } catch (error: any) {
-      setSettingsMessage(error.response?.data?.error || "Unable to send language OTP.");
+      setSettingsMessage(error.response?.data?.error || error.message || "Unable to send language verification code.");
     }
   };
 
@@ -338,13 +398,18 @@ export default function ProfilePage() {
                 <Bell className="h-4 w-4 text-blue-400" />
                 {translate(lang, "keywordNotifications")}
               </div>
-              <Button
-                size="sm"
-                className="bg-blue-500 hover:bg-blue-600"
-                onClick={() => updateNotificationPreference(!(user.keywordNotificationsEnabled !== false))}
-              >
-                {user.keywordNotificationsEnabled !== false ? translate(lang, "disableNotifications") : translate(lang, "enableNotifications")}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  className="bg-blue-500 hover:bg-blue-600"
+                  onClick={() => updateNotificationPreference(!(user.keywordNotificationsEnabled !== false))}
+                >
+                  {user.keywordNotificationsEnabled !== false ? translate(lang, "disableNotifications") : translate(lang, "enableNotifications")}
+                </Button>
+                <Button size="sm" variant="outline" className="border-gray-600 bg-black text-white" onClick={requestBrowserPermission}>
+                  {translate(lang, "requestBrowserPermission")}
+                </Button>
+              </div>
             </div>
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-white font-semibold">
@@ -379,6 +444,26 @@ export default function ProfilePage() {
               </div>
             </div>
             {settingsMessage && <p className="text-sm text-gray-300">{settingsMessage}</p>}
+          </CardContent>
+        </Card>
+        <Card className="bg-gray-950 border-gray-800 mt-4">
+          <CardContent className="space-y-3">
+            <div>
+              <h2 className="text-white font-semibold">{translate(lang, "loginHistory")}</h2>
+              <p className="text-sm text-gray-400">{translate(lang, "recentLogins")}</p>
+            </div>
+            {loginHistoryError && <p className="text-sm text-red-400">{loginHistoryError}</p>}
+            <div className="divide-y divide-gray-800">
+              {loginHistory.length === 0
+                ? <p className="py-3 text-sm text-gray-400">{translate(lang, "noLoginHistory")}</p>
+                : loginHistory.map((entry, index) => (
+                    <div key={`${entry.timestamp}-${index}`} className="space-y-1 py-3 text-sm text-gray-300">
+                      <p>{[entry.browser, entry.operatingSystem, entry.deviceType].filter(Boolean).join(" · ") || entry.method}</p>
+                      <p>{translate(lang, "ipAddress")}: {entry.ip || "—"}</p>
+                      <time dateTime={entry.timestamp}>{new Date(entry.timestamp).toLocaleString(lang)}</time>
+                    </div>
+                  ))}
+            </div>
           </CardContent>
         </Card>
       </div>

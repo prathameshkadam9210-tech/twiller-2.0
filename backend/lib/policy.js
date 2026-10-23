@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { parseFile } from "music-metadata";
+import { UAParser } from "ua-parser-js";
 
 export const PLANS = Object.freeze({
   Free: { amount: 0, tweetLimit: 1 },
@@ -9,12 +10,25 @@ export const PLANS = Object.freeze({
 });
 
 export const SUPPORTED_LANGUAGES = Object.freeze(["en", "hi", "es", "pt", "zh", "fr"]);
+export const getLanguageOtpChannel = (language) => language === "fr" ? "email" : "sms";
 export const MAX_AUDIO_BYTES = 100 * 1024 * 1024;
 export const MAX_AUDIO_SECONDS = 5 * 60;
 export const isKeywordNotificationTweet = (content = "") => /\b(cricket|science)\b/i.test(content);
 export const shouldRequireChromeOtp = (browser = "") => {
   const name = browser.toLowerCase();
   return name.includes("chrome") && !name.includes("edge");
+};
+
+export const getLoginClientPolicy = (userAgent = "", now = new Date()) => {
+  const parsed = new UAParser(userAgent).getResult();
+  const isMobile = parsed.device.type === "mobile";
+  return {
+    browser: parsed.browser?.name || "Unknown",
+    operatingSystem: parsed.os?.name || "Unknown",
+    deviceType: parsed.device?.type || "desktop",
+    blocked: isMobile && !isWithinIstWindowAt(now, 10, 13),
+    requiresOtp: shouldRequireChromeOtp(parsed.browser?.name || ""),
+  };
 };
 
 export const generateAlphaPassword = (length = 12) => {

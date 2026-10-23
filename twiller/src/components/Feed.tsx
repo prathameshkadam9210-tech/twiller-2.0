@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Card, CardContent } from "./ui/card";
 import LoadingSpinner from "./loading-spinner";
@@ -93,6 +93,7 @@ const Feed = () => {
   const [tweets, setTweets] = useState<any>([]);
   const [loading, setloading] = useState(false);
   const [message, setMessage] = useState("");
+  const notifiedTweetIds = useRef(new Set<string>());
   const lang: Language = (user?.language as Language) || "en";
   const fetchTweets = async () => {
     try {
@@ -108,6 +109,40 @@ const Feed = () => {
   useEffect(() => {
     fetchTweets();
   }, []);
+  useEffect(() => {
+    if (!user?.email || user.keywordNotificationsEnabled === false) return;
+    let cancelled = false;
+    let polling = false;
+    let since = new Date().toISOString();
+    const pollKeywordTweets = async () => {
+      if (cancelled || polling) return;
+      polling = true;
+      const checkedAt = new Date().toISOString();
+      try {
+        const response = await axiosInstance.get("/keyword-tweets", {
+          params: { email: user.email, since },
+        });
+        if (cancelled) return;
+        since = checkedAt;
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
+        for (const tweet of response.data || []) {
+          const id = String(tweet._id || tweet.id || "");
+          if (!id || notifiedTweetIds.current.has(id)) continue;
+          notifiedTweetIds.current.add(id);
+          new Notification("Twiller keyword tweet", { body: tweet.content });
+        }
+      } catch (error) {
+        console.error("Unable to check keyword tweets:", error);
+      } finally {
+        polling = false;
+      }
+    };
+    const timer = window.setInterval(pollKeywordTweets, 10000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [user?.email, user?.keywordNotificationsEnabled]);
   const handlenewtweet = (newtweet: any) => {
     setTweets((prev: any) => [newtweet, ...prev]);
     const shouldNotify =
@@ -116,6 +151,8 @@ const Feed = () => {
       typeof window !== "undefined" &&
       "Notification" in window;
     if (shouldNotify) {
+      const id = String(newtweet._id || newtweet.id || "");
+      if (id) notifiedTweetIds.current.add(id);
       const show = () => new Notification("Twiller keyword tweet", { body: newtweet.content });
       if (Notification.permission === "granted") show();
       else if (Notification.permission !== "denied") Notification.requestPermission().then((permission) => permission === "granted" && show());

@@ -13,7 +13,8 @@ import Razorpay from "razorpay";
 import rateLimit from "express-rate-limit";
 import { UAParser } from "ua-parser-js";
 import dns from "node:dns";
-import { MAX_AUDIO_BYTES, MAX_AUDIO_SECONDS, PLANS, SUPPORTED_LANGUAGES, generateAlphaPassword, getAudioDurationSeconds, isKeywordNotificationTweet, shouldRequireChromeOtp, usagePeriodStart, verifyRazorpaySignature } from "./lib/policy.js";
+import { GridFSBucket, ObjectId } from "mongodb";
+import { MAX_AUDIO_BYTES, MAX_AUDIO_SECONDS, PLANS, SUPPORTED_LANGUAGES, generateAlphaPassword, getAudioDurationSeconds, getLanguageOtpChannel, getLoginClientPolicy, isKeywordNotificationTweet, usagePeriodStart, verifyRazorpaySignature } from "./lib/policy.js";
 
 import User from "./models/user.js";
 import Tweet from "./models/tweet.js";
@@ -31,6 +32,7 @@ dotenv.config({ path: path.join(__dirname, ".env") });
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 const app = express();
+app.set("trust proxy", 1);
 const uploadDir = path.join(__dirname, "uploads", "audio");
 const imageUploadDir = path.join(__dirname, "uploads", "images");
 fs.mkdirSync(uploadDir, { recursive: true });
@@ -72,13 +74,7 @@ const audioUpload = multer({
 });
 
 const imageUpload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, imageUploadDir),
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname || ".jpg");
-      cb(null, `${Date.now()}-${crypto.randomBytes(8).toString("hex")}${ext}`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (!file.mimetype?.startsWith("image/")) {
@@ -112,6 +108,9 @@ const mailer =
 const smsConfigured = Boolean(
   process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM_NUMBER
 );
+const twilioVerifyConfigured = Boolean(
+  process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_VERIFY_SERVICE_SID
+);
 
 const getIstParts = (date = new Date()) => {
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -140,6 +139,43 @@ const getClientIp = (req) =>
   req.socket?.remoteAddress ||
   req.ip ||
   "";
+
+const getPublicBaseUrl = (req) => {
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const proto = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto || req.protocol;
+  const fromRequest = `${proto}://${req.get("host")}`;
+  const configured = process.env.PUBLIC_BACKEND_URL ? process.env.PUBLIC_BACKEND_URL.replace(/\/+$/, "") : "";
+  // A configured localhost URL is a local-dev default; never bake it into stored
+  // media URLs. Prefer the URL derived from the incoming request.
+  if (configured && !/localhost|127\.0\.0\.1/.test(new URL(configured).hostname)) return configured;
+  return fromRequest;
+};
+
+const uploadToGridFS = (buffer, filename, contentType) =>
+  new Promise((resolve, reject) => {
+    const bucket = new GridFSBucket(mongoose.connection.db, { bucketName: "uploads" });
+    const stream = bucket.openUploadStream(filename, { contentType });
+    stream.on("finish", () => resolve(stream.id));
+    stream.on("error", reject);
+    stream.end(buffer);
+  });
+
+const serveGridFsFile = async (req, res) => {
+  try {
+    const bucket = new GridFSBucket(mongoose.connection.db, { bucketName: "uploads" });
+    const id = new ObjectId(req.params.id);
+    const files = await bucket.find({ _id: id }).toArray();
+    if (!files.length) return res.status(404).send({ error: "File not found" });
+    res.set("Content-Type", files[0].contentType || "application/octet-stream");
+    const stream = bucket.openDownloadStream(id);
+    stream.on("error", () => {
+      if (!res.headersSent) res.status(404).send({ error: "File not found" });
+    });
+    stream.pipe(res);
+  } catch (error) {
+    return res.status(400).send({ error: error.message });
+  }
+};
 
 const parseUserAgent = (userAgent = "") => {
   const parsed = new UAParser(userAgent).getResult();
@@ -227,6 +263,40 @@ const sendSms = async ({ to, text }) => {
   return true;
 };
 
+const callTwilioVerify = async (action, params) => {
+  if (!twilioVerifyConfigured) {
+    throw new Error("Twilio Verify is not configured. Set TWILIO_VERIFY_SERVICE_SID and Twilio credentials.");
+  }
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const credentials = Buffer.from(`${accountSid}:${process.env.TWILIO_AUTH_TOKEN}`).toString("base64");
+  const body = new URLSearchParams(params);
+  const response = await fetch(
+    `https://verify.twilio.com/v2/Services/${encodeURIComponent(process.env.TWILIO_VERIFY_SERVICE_SID)}/${action}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body,
+    }
+  );
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.message || `Twilio Verify request failed (HTTP ${response.status}).`);
+  }
+  return result;
+};
+
+const sendTwilioVerification = async ({ to }) => {
+  await callTwilioVerify("Verifications", { To: to, Channel: "sms" });
+};
+
+const checkTwilioVerification = async ({ to, code }) => {
+  const result = await callTwilioVerify("VerificationCheck", { To: to, Code: code });
+  return result.status === "approved" && result.valid === true;
+};
+
 const getOtpDelivery = (user) => {
   if (smsConfigured && user.phone) return { channel: "sms", target: user.phone };
   if (user.email) return { channel: "email", target: user.email };
@@ -234,8 +304,13 @@ const getOtpDelivery = (user) => {
 };
 
 const createOtp = async ({ user, purpose, channel, target, deliveryTarget }) => {
+  if (purpose === "language_change" && channel === "sms") {
+    await sendTwilioVerification({ to: deliveryTarget || target });
+    return { channel, target: deliveryTarget || target };
+  }
+
   const otp = generateOtp();
-  await OTPVerification.create({
+  const record = await OTPVerification.create({
     user: user._id,
     purpose,
     channel,
@@ -245,10 +320,16 @@ const createOtp = async ({ user, purpose, channel, target, deliveryTarget }) => 
   });
   const text = `Your Twiller OTP is ${otp}. It expires in 10 minutes.`;
   const deliverTo = deliveryTarget || target;
-  if (channel === "email") {
-    await sendEmail({ to: deliverTo, subject: "Twiller OTP verification", text });
-  } else {
-    await sendSms({ to: deliverTo, text });
+  try {
+    if (channel === "email") {
+      await sendEmail({ to: deliverTo, subject: "Twiller OTP verification", text });
+    } else {
+      await sendSms({ to: deliverTo, text });
+    }
+  } catch (deliveryError) {
+    console.error("OTP delivery failed:", deliveryError.message);
+    await OTPVerification.deleteOne({ _id: record._id });
+    throw deliveryError;
   }
   return { channel, target };
 };
@@ -272,6 +353,29 @@ const verifyOtpRecord = async ({ userId, purpose, otp, target }) => {
   record.verifiedAt = new Date();
   await record.save();
   return record;
+};
+
+const getLoginPolicy = (req) => {
+  const userAgent = req.headers["user-agent"] || "";
+  const policy = getLoginClientPolicy(userAgent);
+  return {
+    ...policy,
+    error: "Mobile logins are allowed only between 10:00 AM and 1:00 PM IST.",
+  };
+};
+
+const applyLoginPolicy = async (user, req) => {
+  const policy = getLoginPolicy(req);
+  if (policy.blocked) return policy;
+  if (policy.requiresOtp) {
+    await createOtp({
+      user,
+      purpose: "login",
+      channel: "email",
+      target: user.email,
+    });
+  }
+  return policy;
 };
 
 const sendInvoiceEmail = async ({ user, transaction }) => {
@@ -450,8 +554,16 @@ app.patch("/userupdate/:email", async (req, res) => {
 app.post("/upload/image", imageUpload.single("image"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).send({ error: "Image file is required" });
-    const baseUrl = process.env.PUBLIC_BACKEND_URL || `${req.protocol}://${req.get("host")}`;
-    return res.status(201).send({ imageUrl: `${baseUrl}/uploads/images/${req.file.filename}` });
+    if (!isDbConnected) {
+      return res.status(503).send({ error: "Database is not connected yet. Please try again shortly." });
+    }
+    const fileId = await uploadToGridFS(
+      req.file.buffer,
+      req.file.originalname || `image-${Date.now()}.jpg`,
+      req.file.mimetype || "image/jpeg"
+    );
+    const baseUrl = getPublicBaseUrl(req);
+    return res.status(201).send({ imageUrl: `${baseUrl}/uploads/images/${fileId}` });
   } catch (error) {
     return res.status(400).send({ error: error.message });
   }
@@ -466,6 +578,9 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get("/uploads/images/:id", serveGridFsFile);
+app.get("/uploads/audio/:id", serveGridFsFile);
+
 app.post("/auth/prelogin", authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -473,26 +588,29 @@ app.post("/auth/prelogin", authLimiter, async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).send({ error: "User not found" });
 
-    const metadata = parseUserAgent(req.headers["user-agent"]);
-    if (metadata.deviceType === "mobile" && !isWithinIstWindow(10, 13)) {
-      return res.status(403).send({ error: "Mobile login is allowed only between 10:00 AM and 1:00 PM IST." });
-    }
-
     if (password && user.passwordHash) {
       const passwordMatches = await bcrypt.compare(password, user.passwordHash);
       if (!passwordMatches) return res.status(401).send({ error: "Invalid email or password." });
-    }
-
-    const lowerBrowser = metadata.browser.toLowerCase();
-    if (shouldRequireChromeOtp(lowerBrowser)) {
-      await createOtp({ user, purpose: "login", channel: "email", target: user.email });
-      return res.status(202).send({ requiresOtp: true, channel: "email", message: "OTP sent to registered email." });
-    }
-
-    if (password && user.passwordHash) {
+      const policy = await applyLoginPolicy(user, req);
+      if (policy.blocked) return res.status(403).send({ error: policy.error });
+      if (policy.requiresOtp) return res.status(200).send({ requiresOtp: true });
       return res.status(200).send({ user, backendPasswordAccepted: true });
     }
     return res.status(200).send({ requiresOtp: false });
+  } catch (error) {
+    return res.status(400).send({ error: error.message });
+  }
+});
+
+app.post("/auth/complete-login", authLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).send({ error: "Email required" });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).send({ error: "User not found" });
+    const policy = await applyLoginPolicy(user, req);
+    if (policy.blocked) return res.status(403).send({ error: policy.error });
+    return res.status(200).send({ requiresOtp: policy.requiresOtp });
   } catch (error) {
     return res.status(400).send({ error: error.message });
   }
@@ -504,6 +622,8 @@ app.post("/auth/verify-login-otp", authLimiter, async (req, res) => {
     if (!email || !otp) return res.status(400).send({ error: "Email and OTP are required" });
     const user = await User.findOne({ email });
     if (!user) return res.status(404).send({ error: "User not found" });
+    const policy = getLoginPolicy(req);
+    if (policy.blocked) return res.status(403).send({ error: policy.error });
     const record = await verifyOtpRecord({ userId: user._id, purpose: "login", otp, target: user.email });
     if (!record) return res.status(400).send({ error: "Invalid or expired OTP" });
     return res.status(200).send({ user });
@@ -519,6 +639,9 @@ app.post("/auth/password-login", authLimiter, async (req, res) => {
     if (!user || !user.passwordHash || !(await bcrypt.compare(String(password || ""), user.passwordHash))) {
       return res.status(401).send({ error: "Invalid credentials" });
     }
+    const policy = await applyLoginPolicy(user, req);
+    if (policy.blocked) return res.status(403).send({ error: policy.error });
+    if (policy.requiresOtp) return res.status(200).send({ requiresOtp: true });
     return res.status(200).send(user);
   } catch (error) {
     return res.status(400).send({ error: error.message });
@@ -527,11 +650,11 @@ app.post("/auth/password-login", authLimiter, async (req, res) => {
 
 app.post("/login-event", async (req, res) => {
   try {
-    const { email, method = "password", userAgent } = req.body;
+    const { email, method = "password" } = req.body;
     if (!email) return res.status(400).send({ error: "Email required" });
     const user = await User.findOne({ email });
     if (!user) return res.status(404).send({ error: "User not found" });
-    const ua = userAgent || req.headers["user-agent"] || "";
+    const ua = req.headers["user-agent"] || "";
     const parsed = parseUserAgent(ua);
     const entry = {
       user: user._id,
@@ -582,25 +705,40 @@ app.post("/forgot-password", authLimiter, async (req, res) => {
 
     const generatedPassword = generateAlphaPassword();
     const generatedPasswordHash = await bcrypt.hash(generatedPassword, 10);
-    const requestedSms = !identifier.includes("@");
-    const delivery = requestedSms ? getOtpDelivery(user) : { channel: "email", target: user.email };
-    if (!delivery) return res.status(400).send({ error: "Registered email or mobile number is required" });
+    const requestedSms = user.phone === identifier;
+    const delivery = requestedSms
+      ? smsConfigured ? { channel: "sms", target: user.phone } : null
+      : user.email === identifier ? { channel: "email", target: user.email } : null;
+    if (!delivery) {
+      return res.status(400).send({
+        error: requestedSms
+          ? "SMS delivery is not configured for password recovery."
+          : "A registered email address or phone number is required.",
+      });
+    }
     const channel = delivery.channel;
-    await PasswordResetRequest.create({
+    const resetRequest = await PasswordResetRequest.create({
       user: user._id,
       identifier,
       channel,
       requestedOn: dateKey,
       generatedPasswordHash,
-      delivered: true,
+      delivered: false,
     });
-    user.passwordHash = generatedPasswordHash;
-    await user.save();
 
     const text = `Your new Twiller password is ${generatedPassword}`;
-    if (channel === "email") await sendEmail({ to: delivery.target, subject: "Your Twiller password reset", text });
-    else await sendSms({ to: delivery.target, text });
+    try {
+      if (channel === "email") await sendEmail({ to: delivery.target, subject: "Your Twiller password reset", text });
+      else await sendSms({ to: delivery.target, text });
+    } catch (deliveryError) {
+      await PasswordResetRequest.deleteOne({ _id: resetRequest._id });
+      throw deliveryError;
+    }
 
+    user.passwordHash = generatedPasswordHash;
+    await user.save();
+    resetRequest.delivered = true;
+    await resetRequest.save();
     return res.status(200).send({ message: "New password sent to your registered contact." });
   } catch (error) {
     if (error.code === 11000) {
@@ -612,12 +750,15 @@ app.post("/forgot-password", authLimiter, async (req, res) => {
 
 app.post("/reset-password", authLimiter, async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !/^[A-Za-z]+$/.test(password || "")) {
-      return res.status(400).send({ error: "Email and alphabetic password are required" });
+    const { email, currentPassword, password } = req.body;
+    if (!email || !currentPassword || !/^[A-Za-z]+$/.test(password || "")) {
+      return res.status(400).send({ error: "Email, current password, and alphabetic new password are required" });
     }
     const user = await User.findOne({ email });
     if (!user) return res.status(404).send({ error: "User not found" });
+    if (!user.passwordHash || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      return res.status(401).send({ error: "Current password is invalid" });
+    }
     user.passwordHash = await bcrypt.hash(password, 10);
     await user.save();
     return res.status(200).send({ message: "Password updated." });
@@ -747,9 +888,20 @@ app.post("/language/request-otp", authLimiter, async (req, res) => {
     }
     const user = await User.findOne({ email });
     if (!user) return res.status(404).send({ error: "User not found" });
-    const delivery = language === "fr" ? { channel: "email", target: user.email } : getOtpDelivery(user);
-    if (!delivery?.target) return res.status(400).send({ error: "Registered email or mobile number is required" });
-    const { channel, target } = delivery;
+    const channel = getLanguageOtpChannel(language);
+    const delivery = channel === "email"
+      ? { channel: "email", target: user.email }
+      : twilioVerifyConfigured && user.phone
+        ? { channel: "sms", target: user.phone }
+        : null;
+    if (!delivery?.target) {
+      return res.status(400).send({
+        error: language === "fr"
+          ? "A registered email address is required"
+          : "A registered mobile number and Twilio Verify service are required",
+      });
+    }
+    const { target } = delivery;
     const otp = await createOtp({
       user,
       purpose: "language_change",
@@ -771,16 +923,29 @@ app.post("/language/verify", authLimiter, async (req, res) => {
     }
     const user = await User.findOne({ email });
     if (!user) return res.status(404).send({ error: "User not found" });
-    const delivery = language === "fr" ? { channel: "email", target: user.email } : getOtpDelivery(user);
-    if (!delivery?.target) return res.status(400).send({ error: "Registered email or mobile number is required" });
+    const channel = getLanguageOtpChannel(language);
+    const delivery = channel === "email"
+      ? { channel: "email", target: user.email }
+      : twilioVerifyConfigured && user.phone
+        ? { channel: "sms", target: user.phone }
+        : null;
+    if (!delivery?.target) {
+      return res.status(400).send({
+        error: language === "fr"
+          ? "A registered email address is required"
+          : "A registered mobile number and Twilio Verify service are required",
+      });
+    }
     const { target } = delivery;
-    const record = await verifyOtpRecord({
-      userId: user._id,
-      purpose: "language_change",
-      otp,
-      target: `${language}:${target}`,
-    });
-    if (!record) return res.status(400).send({ error: "Invalid or expired OTP" });
+    const isVerified = channel === "sms"
+      ? await checkTwilioVerification({ to: target, code: otp })
+      : Boolean(await verifyOtpRecord({
+          userId: user._id,
+          purpose: "language_change",
+          otp,
+          target: `${language}:${target}`,
+        }));
+    if (!isVerified) return res.status(400).send({ error: "Invalid or expired OTP" });
     user.language = language;
     await user.save();
     return res.status(200).send(user);
@@ -905,13 +1070,10 @@ app.post("/audio/request-otp", authLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).send({ error: "Email required" });
-    if (!isWithinIstWindow(14, 19)) {
-      return res.status(403).send({ error: "Audio uploads are allowed only between 2:00 PM and 7:00 PM IST." });
-    }
     const user = await User.findOne({ email });
     if (!user) return res.status(404).send({ error: "User not found" });
-    await createOtp({ user, purpose: "audio_upload", channel: "email", target: user.email });
-    return res.status(200).send({ message: "OTP sent to registered email." });
+    const otpResult = await createOtp({ user, purpose: "audio_upload", channel: "email", target: user.email });
+    return res.status(200).send({ message: "OTP sent to registered email.", ...otpResult });
   } catch (error) {
     return res.status(400).send({ error: error.message });
   }
@@ -934,10 +1096,6 @@ app.post("/audio/upload", audioUpload.single("audio"), async (req, res) => {
   try {
     const { email, otp } = req.body;
     if (!email || !otp || !req.file) return res.status(400).send({ error: "Email, OTP, and audio file are required" });
-    if (!isWithinIstWindow(14, 19)) {
-      await removeUploadedFile(req.file);
-      return res.status(403).send({ error: "Audio uploads are allowed only between 2:00 PM and 7:00 PM IST." });
-    }
     const actualDuration = await getAudioDurationSeconds(req.file.path);
     if (actualDuration > MAX_AUDIO_SECONDS) {
       await removeUploadedFile(req.file);
@@ -953,8 +1111,11 @@ app.post("/audio/upload", audioUpload.single("audio"), async (req, res) => {
       await removeUploadedFile(req.file);
       return res.status(400).send({ error: "Invalid or expired OTP" });
     }
-    const baseUrl = process.env.PUBLIC_BACKEND_URL || `${req.protocol}://${req.get("host")}`;
-    return res.status(201).send({ audioUrl: `${baseUrl}/uploads/audio/${req.file.filename}` });
+    const buffer = await fs.promises.readFile(req.file.path);
+    const fileId = await uploadToGridFS(buffer, req.file.filename, req.file.mimetype || "audio/mpeg");
+    await removeUploadedFile(req.file);
+    const baseUrl = getPublicBaseUrl(req);
+    return res.status(201).send({ audioUrl: `${baseUrl}/uploads/audio/${fileId}` });
   } catch (error) {
     await removeUploadedFile(req.file);
     return res.status(400).send({ error: error.message });
@@ -1019,6 +1180,28 @@ app.get("/post", async (_req, res) => {
   }
 });
 
+app.get("/keyword-tweets", async (req, res) => {
+  try {
+    const { email, since } = req.query;
+    const sinceDate = new Date(String(since || ""));
+    if (!email || !since || !Number.isFinite(sinceDate.getTime())) {
+      return res.status(400).send({ error: "Email and a valid since timestamp are required" });
+    }
+    const user = await User.findOne({ email }).select("keywordNotificationsEnabled");
+    if (!user) return res.status(404).send({ error: "User not found" });
+    if (user.keywordNotificationsEnabled === false) return res.status(200).send([]);
+    const tweets = await Tweet.find({
+      timestamp: { $gt: sinceDate },
+      content: /\b(cricket|science)\b/i,
+    })
+      .sort({ timestamp: 1 })
+      .limit(50)
+      .populate("author");
+    return res.status(200).send(tweets);
+  } catch (error) {
+    return res.status(400).send({ error: error.message });
+  }
+});
 app.post("/like/:tweetid", async (req, res) => {
   try {
     const { userId } = req.body;

@@ -10,7 +10,7 @@ import OTPVerification from "../models/otpVerification.js";
 import User from "../models/user.js";
 import {
   MAX_AUDIO_BYTES, MAX_AUDIO_SECONDS, PLANS, SUPPORTED_LANGUAGES, generateAlphaPassword,
-  getAudioDurationSeconds, isKeywordNotificationTweet, isWithinIstWindowAt, shouldRequireChromeOtp,
+  getAudioDurationSeconds, getLanguageOtpChannel, getLoginClientPolicy, isKeywordNotificationTweet, isWithinIstWindowAt, shouldRequireChromeOtp,
   startOfIstMonth, usagePeriodStart, verifyRazorpaySignature,
 } from "../lib/policy.js";
 
@@ -48,8 +48,8 @@ test("payment signature verification and IST payment window are enforced", () =>
 test("passwords are alphabetic and all six languages have the required OTP channel policy", () => {
   assert.match(generateAlphaPassword(64), /^[A-Za-z]{64}$/);
   assert.deepEqual(SUPPORTED_LANGUAGES, ["en", "hi", "es", "pt", "zh", "fr"]);
-  assert.equal("fr" === "fr" ? "email" : "sms", "email");
-  assert.equal("hi" === "fr" ? "email" : "sms", "sms");
+  assert.equal(getLanguageOtpChannel("fr"), "email");
+  assert.equal(getLanguageOtpChannel("hi"), "sms");
 });
 
 test("Chrome requires OTP, Edge does not, and mobile policy has a restricted time window", () => {
@@ -57,6 +57,15 @@ test("Chrome requires OTP, Edge does not, and mobile policy has a restricted tim
   assert.equal(shouldRequireChromeOtp(new UAParser("Mozilla/5.0 Edg/120.0.0.0").getBrowser().name), false);
   assert.equal(isWithinIstWindowAt(new Date("2026-07-10T05:00:00.000Z"), 10, 13), true);
   assert.equal(isWithinIstWindowAt(new Date("2026-07-10T08:00:00.000Z"), 10, 13), false);
+
+  const mobileChrome = "Mozilla/5.0 (Linux; Android 10; Pixel 3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
+  const mobileEdge = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 EdgiOS/120.0.0.0 Mobile/15E148 Safari/604.1";
+  assert.deepEqual(
+    getLoginClientPolicy(mobileChrome, new Date("2026-07-10T04:30:00.000Z")),
+    { browser: "Mobile Chrome", operatingSystem: "Android", deviceType: "mobile", blocked: false, requiresOtp: true }
+  );
+  assert.equal(getLoginClientPolicy(mobileChrome, new Date("2026-07-10T07:30:00.000Z")).blocked, true);
+  assert.equal(getLoginClientPolicy(mobileEdge, new Date("2026-07-10T04:30:00.000Z")).requiresOtp, false);
 });
 
 test("login history, audio OTP, and notification preferences are persisted in schemas", () => {
