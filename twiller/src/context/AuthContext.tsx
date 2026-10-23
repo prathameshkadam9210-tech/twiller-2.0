@@ -121,26 +121,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    // Check for existing session
-    const unsubcribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const firebaseAuth = auth;
+    const unsubcribe = onAuthStateChanged(firebaseAuth, async (firebaseUser) => {
       if (suppressFirebaseSession.current) return;
-      if (firebaseUser?.email) {
+      if (firebaseUser) {
         try {
-          const res = await axiosInstance.get("/loggedinuser", {
-            params: { email: firebaseUser.email },
-          });
-
-          if (res.data) saveUserSession(res.data);
-        } catch (err) {
-          console.log("Failed to fetch user:", err);
-          const cachedUser = getCachedUser();
-          if (cachedUser) setUser(cachedUser);
+          await signOut(firebaseAuth);
+        } catch (error) {
+          console.error("Failed to clear the persisted Firebase session:", error);
         }
-      } else {
-        const cachedUser = getCachedUser();
-        if (cachedUser) setUser(cachedUser);
-        else clearUserSession();
       }
+      const cachedUser = getCachedUser();
+      if (cachedUser) setUser(cachedUser);
+      else clearUserSession();
       setIsLoading(false);
     });
     return () => unsubcribe();
@@ -342,14 +335,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       let userData;
 
-      try {
-        const res = await axiosInstance.get("/loggedinuser", {
-          params: { email: firebaseuser.email },
-        });
-        userData = res.data;
-      } catch (err: any) {
-        console.warn("No existing user found, registering new user:", err);
-      }
+      const res = await axiosInstance.get("/loggedinuser", {
+        params: { email: firebaseuser.email },
+      });
+      userData = res.data;
 
       if (!userData) {
         const newuser: any = {
