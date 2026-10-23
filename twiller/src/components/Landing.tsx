@@ -6,14 +6,17 @@ import AuthModal from "./Authmodel";
 import TwitterLogo from "./Twitterlogo";
 import { useAuth } from "@/context/AuthContext";
 import Feed from "./Feed";
+import { getSavedLanguage, Language, translate } from "@/lib/i18n";
 
 export default function LandingPage() {
+  const [lang, setLang] = useState<Language>("en");
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup" | "otp">("signup");
   const [otpEmail, setOtpEmail] = useState("");
   const { user, googlesignin, applesignin } = useAuth();
 
   useEffect(() => {
+    setLang(getSavedLanguage());
     const pendingEmail = window.sessionStorage.getItem("twillerPendingLoginOtp");
     if (pendingEmail) {
       setOtpEmail(pendingEmail);
@@ -61,9 +64,9 @@ export default function LandingPage() {
         <div className="space-y-12">
           <div>
             <h1 className="text-5xl lg:text-6xl font-bold mb-8 leading-tight">
-              Happening now
+              {translate(lang, "happeningNow")}
             </h1>
-            <h2 className="text-2xl lg:text-3xl font-bold mb-8">Join today.</h2>
+            <h2 className="text-2xl lg:text-3xl font-bold mb-8">{translate(lang, "joinToday")}</h2>
           </div>
 
           <div className="space-y-4 max-w-xs">
@@ -90,7 +93,7 @@ export default function LandingPage() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Sign up with Google
+              {translate(lang, "signUpGoogle")}
             </Button>
 
             <Button
@@ -105,7 +108,7 @@ export default function LandingPage() {
               >
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
               </svg>
-              Sign up with Apple
+              {translate(lang, "signUpApple")}
             </Button>
 
             <div className="relative">
@@ -113,39 +116,39 @@ export default function LandingPage() {
                 <span className="w-full border-t border-gray-600" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-black px-2 text-gray-400">or</span>
+                <span className="bg-black px-2 text-gray-400">{translate(lang, "separatorOr")}</span>
               </div>
             </div>
             <Button
               className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-full text-base h-12"
               onClick={() => openAuthModal("signup")}
             >
-              Create account
+              {translate(lang, "createAccount")}
             </Button>
             <p className="text-xs text-gray-400 leading-relaxed">
-              By signing up, you agree to the{" "}
+              {translate(lang, "signupAgreement")}{" "}
               <a href="#" className="text-blue-400 hover:underline">
-                Terms of Service
+                {translate(lang, "termsOfService")}
               </a>{" "}
-              and{" "}
+              {translate(lang, "and")}{" "}
               <a href="#" className="text-blue-400 hover:underline">
-                Privacy Policy
+                {translate(lang, "privacyPolicy")}
               </a>
-              , including{" "}
+              , {translate(lang, "including")}{" "}
               <a href="#" className="text-blue-400 hover:underline">
-                Cookie Use
+                {translate(lang, "cookieUse")}
               </a>
               .
             </p>
           </div>
           <div className="space-y-5">
-            <p className="text-lg font-bold">Already have an account?</p>
+            <p className="text-lg font-bold">{translate(lang, "alreadyAccount")}</p>
             <Button
               variant="outline"
               className="w-full max-w-xs py-3 rounded-full border-gray-600 hover:bg-gray-900 text-blue-400 font-semibold text-base h-12"
               onClick={() => openAuthModal("login")}
             >
-              Log in
+              {translate(lang, "logIn")}
             </Button>
           </div>
         </div>

@@ -58,18 +58,22 @@ export default function RightSidebar() {
     setResults((current) => current.map((item) => item._id === person._id ? { ...item, followStatus: action === "accept" ? "none" : "none", followsYou: action === "accept" } : item));
   };
 
-  const actionLabel = (person: Person) => person.followStatus === "following" ? "Following" : person.followStatus === "requested" ? "Requested" : person.followsYou ? "Follow back" : translate(lang, "follow");
+  const actionLabel = (person: Person) => person.followStatus === "following"
+    ? translate(lang, "following")
+    : person.followStatus === "requested"
+      ? translate(lang, "requested")
+      : person.followsYou ? translate(lang, "followBack") : translate(lang, "follow");
 
   return (
     <div className="w-full space-y-4 p-4">
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
-        <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search username or email" className="pl-12 bg-gray-900 border-gray-800 text-white placeholder-gray-400 rounded-full py-3" />
+        <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={translate(lang, "searchUsernameEmail")} className="pl-12 bg-gray-900 border-gray-800 text-white placeholder-gray-400 rounded-full py-3" />
       </div>
 
       {query.trim() && <Card className="bg-gray-900 border-gray-800"><CardContent className="p-4 space-y-3">
-        <h3 className="text-white font-bold">Search results</h3>
-        {loading ? <p className="text-sm text-gray-400">Searching...</p> : results.length === 0 ? <p className="text-sm text-gray-400">No people found.</p> : results.map((person) => (
+        <h3 className="text-white font-bold">{translate(lang, "searchResults")}</h3>
+        {loading ? <p className="text-sm text-gray-400">{translate(lang, "searching")}</p> : results.length === 0 ? <p className="text-sm text-gray-400">{translate(lang, "noPeopleFound")}</p> : results.map((person) => (
           <div key={person._id} className="flex items-center gap-2">
             <Avatar className="h-9 w-9"><AvatarImage src={person.avatar} /><AvatarFallback>{person.displayName[0]}</AvatarFallback></Avatar>
             <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-white">{person.displayName}</p><p className="truncate text-xs text-gray-400">@{person.username} · {person.email}</p></div>
@@ -79,12 +83,12 @@ export default function RightSidebar() {
       </CardContent></Card>}
 
       {requests.length > 0 && <Card className="bg-gray-900 border-gray-800"><CardContent className="p-4 space-y-3">
-        <h3 className="text-white font-bold">Follow requests</h3>
+        <h3 className="text-white font-bold">{translate(lang, "followRequests")}</h3>
         {requests.map((person) => <div key={person._id} className="flex items-center gap-2">
           <Avatar className="h-9 w-9"><AvatarImage src={person.avatar} /><AvatarFallback>{person.displayName[0]}</AvatarFallback></Avatar>
           <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-white">{person.displayName}</p><p className="truncate text-xs text-gray-400">@{person.username}</p></div>
-          <Button size="sm" onClick={() => respondToRequest(person, "accept")} className="rounded-full bg-white text-black hover:bg-gray-200">Accept</Button>
-          <Button size="sm" variant="outline" onClick={() => respondToRequest(person, "reject")} className="rounded-full">Reject</Button>
+          <Button size="sm" onClick={() => respondToRequest(person, "accept")} className="rounded-full bg-white text-black hover:bg-gray-200">{translate(lang, "accept")}</Button>
+          <Button size="sm" variant="outline" onClick={() => respondToRequest(person, "reject")} className="rounded-full">{translate(lang, "reject")}</Button>
         </div>)}
       </CardContent></Card>}
 
@@ -103,7 +107,7 @@ export default function RightSidebar() {
             </div>
           ))}
         </div>
-        <p className="mt-4 text-xs text-gray-500">Search a recommended username to send a real follow request.</p>
+        <p className="mt-4 text-xs text-gray-500">{translate(lang, "searchRecommended")}</p>
       </CardContent></Card>
     </div>
   );

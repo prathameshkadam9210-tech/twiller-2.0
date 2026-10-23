@@ -12,6 +12,7 @@ import {
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { auth } from "./firebase";
 import axiosInstance from "../lib/axiosInstance";
+import { languageLabels } from "../lib/i18n";
 
 interface User {
   _id: string;
@@ -95,6 +96,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const saveUserSession = (userData: User) => {
     setUser(userData);
     localStorage.setItem("twitter-user", JSON.stringify(userData));
+    if (userData.language && Object.hasOwn(languageLabels, userData.language)) {
+      localStorage.setItem("twillerLanguage", userData.language);
+    }
   };
 
   const clearUserSession = () => {
@@ -157,8 +161,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await axiosInstance.post("/login-event", { email, method: "password" });
         return;
       }
+      suppressFirebaseSession.current = true;
       const usercred = await signInWithEmailAndPassword(auth, email, password);
       const firebaseuser = usercred.user;
+      const loginPolicy = await axiosInstance.post("/auth/complete-login", {
+        email: firebaseuser.email,
+      });
+      await signOut(auth);
+      if (loginPolicy.data?.requiresOtp) {
+        throw new Error("EMAIL_OTP_REQUIRED");
+      }
+      suppressFirebaseSession.current = false;
       const res = await axiosInstance.get("/loggedinuser", {
         params: { email: firebaseuser.email },
       });
@@ -169,15 +182,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       });
     } catch (error: any) {
       if (error.message === "EMAIL_OTP_REQUIRED") throw error;
-      try {
-        const backendRes = await axiosInstance.post("/auth/password-login", { email, password });
-        if (backendRes.data) {
-          saveUserSession(backendRes.data);
-          await axiosInstance.post("/login-event", { email, method: "password" });
-          return;
-        }
-      } catch {
-        // Preserve the original Firebase error when backend fallback is not valid.
+      if (suppressFirebaseSession.current) {
+        await signOut(auth);
+        suppressFirebaseSession.current = false;
       }
       throw error;
     } finally {
@@ -190,6 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const res = await axiosInstance.post("/auth/verify-login-otp", { email, otp });
       if (res.data?.user) {
+        suppressFirebaseSession.current = false;
         saveUserSession(res.data.user);
         await axiosInstance.post("/login-event", { email, method: "email-otp" });
       }
@@ -305,7 +313,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setLanguage = async (language: string, otp?: string) => {
     if (!user) return;
-    if (!otp) return requestLanguageOtp(language);
+    if (!otp) {
+      throw new Error("A verification code is required to change your language.");
+    }
     const res = await axiosInstance.post("/language/verify", { email: user.email, language, otp });
     if (res.data) {
       window.localStorage.setItem("twillerLanguage", language);
@@ -355,9 +365,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         userData = registerRes.data || newuser;
       }
 
-      const prelogin = await axiosInstance.post("/auth/prelogin", { email: firebaseuser.email });
-      if (prelogin.data?.requiresOtp) {
-        await signOut(auth);
+      const loginPolicy = await axiosInstance.post("/auth/complete-login", { email: firebaseuser.email });
+      await signOut(auth);
+      if (loginPolicy.data?.requiresOtp) {
         const otpError: any = new Error("EMAIL_OTP_REQUIRED");
         otpError.otpEmail = firebaseuser.email;
         throw otpError;
@@ -366,6 +376,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       saveUserSession(userData);
       await axiosInstance.post("/login-event", { email: userData.email, method: providerName });
     } catch (error: any) {
+      await signOut(auth);
       if (error.code === "auth/user-cancelled" || error.code === "auth/cancelled-popup-request") {
         console.info(`${providerName} Sign-In was canceled by the user.`);
       } else {

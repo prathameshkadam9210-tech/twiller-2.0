@@ -1,29 +1,42 @@
 import axios from "axios";
 
-const configuredBackendUrl =
-  process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || "http://localhost:5000";
+const isBrowser = typeof window !== "undefined";
 
-const backendUrl =
-  typeof window !== "undefined" &&
-  configuredBackendUrl &&
-  new URL(configuredBackendUrl, window.location.origin).origin === window.location.origin
+// Production API (Render). Swap to http://localhost:5000 only when running
+// the Next.js dev server locally on localhost.
+const PRODUCTION_BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.BACKEND_URL ||
+  "https://twiller-2-0-838w.onrender.com";
+
+const backendUrl = isBrowser
+  ? window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:5000"
-    : configuredBackendUrl;
-
-if (!process.env.NEXT_PUBLIC_BACKEND_URL && !process.env.BACKEND_URL) {
-  console.warn(
-    "Axios warning: BACKEND URL is not set. Defaulting to http://localhost:5000. Add NEXT_PUBLIC_BACKEND_URL to twiller/.env.local for production."
-  );
-}
+    : PRODUCTION_BACKEND_URL
+  : PRODUCTION_BACKEND_URL;
 
 const axiosInstance = axios.create({
   baseURL: backendUrl,
-  timeout: 15000,
+  // Render free instances can need more than 15 seconds to wake after inactivity.
+  timeout: 60000,
 });
 
+// Retry a request once with a short delay when the backend is cold-starting
+// (network failure or timeout), so Render's free-tier spin-up doesn't surface
+// as an error to the user.
 axiosInstance.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config;
+    if (
+      (error.code === "ERR_NETWORK" || error.code === "ECONNABORTED") &&
+      config &&
+      !config._retried
+    ) {
+      config._retried = true;
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      return axiosInstance(config);
+    }
     if (error.code === "ERR_NETWORK") {
       error.message = `Cannot connect to the backend API at ${backendUrl}. Start the backend server and check MONGODB_URL in backend/.env.`;
     }
@@ -32,7 +45,7 @@ axiosInstance.interceptors.response.use(
     }
     if (error.response?.status === 404) {
       const base = error.config?.baseURL || backendUrl;
-      error.message = `Backend route not found (${base}${error.config?.url || ""}). Make sure the Express backend is running on port 5000 and NEXT_PUBLIC_BACKEND_URL points to it.`;
+      error.message = `Backend route not found (${base}${error.config?.url || ""}). Make sure the Express backend is running and NEXT_PUBLIC_BACKEND_URL points to it.`;
     }
     return Promise.reject(error);
   }

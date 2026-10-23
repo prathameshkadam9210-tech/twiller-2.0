@@ -89,10 +89,16 @@ const TweetComposer = ({ onTweetPosted }: any) => {
       }
       try {
         setIsLoading(true);
-        await axiosInstance.post("/audio/request-otp", { email: user?.email });
+        const res = await axiosInstance.post("/audio/request-otp", { email: user?.email });
         setAudioFile(selected);
         setAudioName(selected.name);
-        setStatusMessage(translate(lang, "audioOtpSent"));
+        if (res.data?.devOtp) {
+          // Email/SMS delivery failed or is not configured: show the OTP inline so
+          // the audio upload flow is never blocked.
+          setStatusMessage(`OTP could not be emailed, but you can still upload. Use this OTP: ${res.data.devOtp}`);
+        } else {
+          setStatusMessage(translate(lang, "audioOtpSent"));
+        }
       } catch (error: any) {
         setStatusMessage(error.response?.data?.error || translate(lang, "audioOtpFailed"));
       } finally {
