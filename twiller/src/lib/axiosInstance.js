@@ -21,16 +21,15 @@ const axiosInstance = axios.create({
   timeout: 60000,
 });
 
-// Retry a request once with a short delay when the backend is cold-starting
-// (network failure or timeout), so Render's free-tier spin-up doesn't surface
-// as an error to the user.
+// Retry safe GETs on network errors while a Render instance is waking up.
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const config = error.config;
     if (
-      (error.code === "ERR_NETWORK" || error.code === "ECONNABORTED") &&
+      error.code === "ERR_NETWORK" &&
       config &&
+      config.method?.toLowerCase() === "get" &&
       !config._retried
     ) {
       config._retried = true;
@@ -41,7 +40,7 @@ axiosInstance.interceptors.response.use(
       error.message = `Cannot connect to the backend API at ${backendUrl}. Start the backend server and check MONGODB_URL in backend/.env.`;
     }
     if (error.code === "ECONNABORTED") {
-      error.message = `The backend API at ${backendUrl} took too long to respond. Check the backend server and MongoDB connection.`;
+      error.message = `The backend API at ${backendUrl} did not respond within 60 seconds. Check the Render service logs and database connection, then try again.`;
     }
     if (error.response?.status === 404) {
       const base = error.config?.baseURL || backendUrl;
