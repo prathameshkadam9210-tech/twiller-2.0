@@ -17,8 +17,8 @@ const backendUrl = isBrowser
 
 const axiosInstance = axios.create({
   baseURL: backendUrl,
-  // Render free instances can need more than 15 seconds to wake after inactivity.
-  timeout: 60000,
+  // Allow enough time for a sleeping Render instance and its database to wake.
+  timeout: 120000,
 });
 
 // Retry safe GETs on network errors while a Render instance is waking up.
@@ -40,7 +40,7 @@ axiosInstance.interceptors.response.use(
       error.message = `Cannot connect to the backend API at ${backendUrl}. Start the backend server and check MONGODB_URL in backend/.env.`;
     }
     if (error.code === "ECONNABORTED") {
-      error.message = `The backend API at ${backendUrl} did not respond within 60 seconds. Check the Render service logs and database connection, then try again.`;
+      error.message = `The backend API at ${backendUrl} did not respond within 120 seconds. Check the Render service logs and database connection, then try again.`;
     }
     if (error.response?.status === 404) {
       const base = error.config?.baseURL || backendUrl;
