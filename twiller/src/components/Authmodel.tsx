@@ -9,6 +9,7 @@ import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Separator } from "./ui/separator";
 import { useAuth } from "@/context/AuthContext";
+import axiosInstance from "@/lib/axiosInstance";
 import TwitterLogo from "./Twitterlogo";
 import { getSavedLanguage, translate } from "@/lib/i18n";
 
@@ -35,6 +36,13 @@ export default function AuthModal({ isOpen, onClose, initialMode = "login", init
     setSuccessMessage("");
     setFormData({ email: initialEmail, password: "", username: "", displayName: "", otp: "" });
   }, [initialEmail, initialMode, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || initialMode !== "login") return;
+    axiosInstance.get("/health").catch((error) => {
+      console.warn("Backend warm-up failed before login:", error);
+    });
+  }, [initialMode, isOpen]);
 
   if (!isOpen) return null;
 
