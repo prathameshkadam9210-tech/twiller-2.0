@@ -7,6 +7,7 @@ import TwitterLogo from "./Twitterlogo";
 import { useAuth } from "@/context/AuthContext";
 import Feed from "./Feed";
 import { getSavedLanguage, Language, translate } from "@/lib/i18n";
+import axiosInstance from "@/lib/axiosInstance";
 
 export default function LandingPage() {
   const [lang, setLang] = useState<Language>("en");
@@ -17,6 +18,9 @@ export default function LandingPage() {
 
   useEffect(() => {
     setLang(getSavedLanguage());
+    axiosInstance.get("/").catch((error) => {
+      console.warn("Backend warm-up failed on the landing page:", error);
+    });
     const pendingEmail = window.sessionStorage.getItem("twillerPendingLoginOtp");
     if (pendingEmail) {
       setOtpEmail(pendingEmail);

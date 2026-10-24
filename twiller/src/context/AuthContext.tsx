@@ -106,6 +106,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     localStorage.removeItem("twitter-user");
   };
 
+  const recordLoginEvent = (email: string, method: string) => {
+    void axiosInstance.post("/login-event", { email, method }).catch((error) => {
+      console.error("Failed to record login event:", error);
+    });
+  };
+
   const getCachedUser = () => {
     try {
       const cached = localStorage.getItem("twitter-user");
@@ -151,7 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       if (prelogin.data?.backendPasswordAccepted && prelogin.data?.user) {
         saveUserSession(prelogin.data.user);
-        await axiosInstance.post("/login-event", { email, method: "password" });
+        recordLoginEvent(email, "password");
         return;
       }
       suppressFirebaseSession.current = true;
@@ -169,10 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         params: { email: firebaseuser.email },
       });
       if (res.data) saveUserSession(res.data);
-      await axiosInstance.post("/login-event", {
-        email: firebaseuser.email,
-        method: "password",
-      });
+      if (firebaseuser.email) recordLoginEvent(firebaseuser.email, "password");
     } catch (error: any) {
       if (error.message === "EMAIL_OTP_REQUIRED") throw error;
       if (suppressFirebaseSession.current) {
@@ -192,7 +195,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (res.data?.user) {
         suppressFirebaseSession.current = false;
         saveUserSession(res.data.user);
-        await axiosInstance.post("/login-event", { email, method: "email-otp" });
+        recordLoginEvent(email, "email-otp");
       }
     } finally {
       setIsLoading(false);
@@ -217,10 +220,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       };
       const res = await axiosInstance.post("/register", newuser);
       if (res.data) saveUserSession(res.data);
-      await axiosInstance.post("/login-event", {
-        email,
-        method: "signup",
-      });
+      recordLoginEvent(email, "signup");
     } finally {
       setIsLoading(false);
     }
@@ -363,7 +363,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       if (!userData) throw new Error("Login/Register failed: No user data returned");
       saveUserSession(userData);
-      await axiosInstance.post("/login-event", { email: userData.email, method: providerName });
+      recordLoginEvent(userData.email, providerName);
     } catch (error: any) {
       await signOut(auth);
       if (error.code === "auth/user-cancelled" || error.code === "auth/cancelled-popup-request") {
