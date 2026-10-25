@@ -15,6 +15,7 @@ import { UAParser } from "ua-parser-js";
 import dns from "node:dns";
 import { GridFSBucket, ObjectId } from "mongodb";
 import { MAX_AUDIO_BYTES, MAX_AUDIO_SECONDS, PLANS, SUPPORTED_LANGUAGES, generateAlphaPassword, getAudioDurationSeconds, getLanguageOtpChannel, getLoginClientPolicy, isKeywordNotificationTweet, usagePeriodStart, verifyRazorpaySignature } from "./lib/policy.js";
+import { sendResendEmail } from "./lib/email.js";
 
 import User from "./models/user.js";
 import Tweet from "./models/tweet.js";
@@ -199,8 +200,18 @@ const removeUploadedFile = async (file) => {
 };
 
 const sendEmail = async ({ to, subject, text, attachments = [] }) => {
+  if (process.env.RESEND_API_KEY) {
+    return sendResendEmail({
+      apiKey: process.env.RESEND_API_KEY,
+      from: process.env.MAIL_FROM,
+      to,
+      subject,
+      text,
+      attachments,
+    });
+  }
   if (!mailer) {
-    throw new Error("Email delivery is not configured.");
+    throw new Error("Email delivery is not configured. Set RESEND_API_KEY and MAIL_FROM on the backend.");
   }
   await mailer.sendMail({
     from: process.env.MAIL_FROM || process.env.SMTP_USER,
@@ -306,7 +317,7 @@ const getOtpDelivery = (user) => {
   return null;
 };
 
-const createOtp = async ({ user, purpose, channel, target, deliveryTarget, waitForDelivery = true }) => {
+const createOtp = async ({ user, purpose, channel, target, deliveryTarget }) => {
   if (purpose === "language_change" && channel === "sms") {
     await sendTwilioVerification({ to: deliveryTarget || target });
     return { channel, target: deliveryTarget || target };
@@ -337,11 +348,10 @@ const createOtp = async ({ user, purpose, channel, target, deliveryTarget, waitF
       } catch (cleanupError) {
         console.error("Failed to remove undelivered OTP:", cleanupError.message);
       }
-      if (waitForDelivery) throw deliveryError;
+      throw deliveryError;
     }
   };
-  if (waitForDelivery) await deliverOtp();
-  else void deliverOtp();
+  await deliverOtp();
   return { channel, target };
 };
 
@@ -384,7 +394,6 @@ const applyLoginPolicy = async (user, req) => {
       purpose: "login",
       channel: "email",
       target: user.email,
-      waitForDelivery: false,
     });
   }
   return policy;
