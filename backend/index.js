@@ -306,7 +306,7 @@ const getOtpDelivery = (user) => {
   return null;
 };
 
-const createOtp = async ({ user, purpose, channel, target, deliveryTarget }) => {
+const createOtp = async ({ user, purpose, channel, target, deliveryTarget, waitForDelivery = true }) => {
   if (purpose === "language_change" && channel === "sms") {
     await sendTwilioVerification({ to: deliveryTarget || target });
     return { channel, target: deliveryTarget || target };
@@ -323,17 +323,25 @@ const createOtp = async ({ user, purpose, channel, target, deliveryTarget }) => 
   });
   const text = `Your Twiller OTP is ${otp}. It expires in 10 minutes.`;
   const deliverTo = deliveryTarget || target;
-  try {
-    if (channel === "email") {
-      await sendEmail({ to: deliverTo, subject: "Twiller OTP verification", text });
-    } else {
-      await sendSms({ to: deliverTo, text });
+  const deliverOtp = async () => {
+    try {
+      if (channel === "email") {
+        await sendEmail({ to: deliverTo, subject: "Twiller OTP verification", text });
+      } else {
+        await sendSms({ to: deliverTo, text });
+      }
+    } catch (deliveryError) {
+      console.error("OTP delivery failed:", deliveryError.message);
+      try {
+        await OTPVerification.deleteOne({ _id: record._id });
+      } catch (cleanupError) {
+        console.error("Failed to remove undelivered OTP:", cleanupError.message);
+      }
+      if (waitForDelivery) throw deliveryError;
     }
-  } catch (deliveryError) {
-    console.error("OTP delivery failed:", deliveryError.message);
-    await OTPVerification.deleteOne({ _id: record._id });
-    throw deliveryError;
-  }
+  };
+  if (waitForDelivery) await deliverOtp();
+  else void deliverOtp();
   return { channel, target };
 };
 
@@ -376,6 +384,7 @@ const applyLoginPolicy = async (user, req) => {
       purpose: "login",
       channel: "email",
       target: user.email,
+      waitForDelivery: false,
     });
   }
   return policy;
